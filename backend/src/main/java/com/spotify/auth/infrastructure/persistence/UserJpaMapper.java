@@ -1,7 +1,6 @@
 package com.spotify.auth.infrastructure.persistence;
 
 import com.spotify.auth.domain.entity.User;
-import com.spotify.auth.domain.repository.UserRepository;
 import com.spotify.auth.domain.valueobject.Email;
 import com.spotify.auth.domain.valueobject.Password;
 import org.mapstruct.Mapper;

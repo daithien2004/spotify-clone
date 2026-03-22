@@ -1,7 +1,7 @@
 package com.spotify.playlist.domain.repository;
 
-import org.apache.el.stream.Optional;
-import org.hibernate.validator.constraints.UUID;
+import java.util.Optional;
+import java.util.UUID;
 
 import com.spotify.playlist.domain.entity.PlaylistTrack;
 

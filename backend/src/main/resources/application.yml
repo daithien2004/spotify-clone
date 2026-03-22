@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/spotify
     username: postgres
-    password: password
+    password: daithien2004
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

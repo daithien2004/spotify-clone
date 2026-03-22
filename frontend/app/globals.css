@@ -127,3 +127,25 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .glass {
+    @apply bg-background/60 backdrop-blur-md border border-white/10;
+  }
+  
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+
+  .spotify-green {
+    @apply text-[#1DB954];
+  }
+
+  .bg-spotify-green {
+    @apply bg-[#1DB954];
+  }
+
+  .hover-spotify-green {
+    @apply hover:text-[#1DB954] transition-colors;
+  }
+}

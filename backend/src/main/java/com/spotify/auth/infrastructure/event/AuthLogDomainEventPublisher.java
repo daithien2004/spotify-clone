@@ -1,13 +1,13 @@
-package com.spotify.playlist.infrastructure.event;
+package com.spotify.auth.infrastructure.event;
 
-import com.spotify.playlist.domain.event.DomainEvent;
-import com.spotify.playlist.domain.repository.DomainEventPublisher;
+import com.spotify.auth.domain.event.DomainEvent;
+import com.spotify.auth.domain.repository.DomainEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class LogDomainEventPublisher implements DomainEventPublisher {
+public class AuthLogDomainEventPublisher implements DomainEventPublisher {
     @Override
     public void publish(DomainEvent event) {
         log.info("Domain Event Published: {} | ID: {} | At: {}", 

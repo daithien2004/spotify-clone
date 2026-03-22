@@ -1,7 +1,5 @@
 package com.spotify.playlist.domain.valueobject;
 
-import java.util.Objects;
-
 public record LexoRank(String value) {
     public LexoRank {
         if (value == null || value.isBlank()) {

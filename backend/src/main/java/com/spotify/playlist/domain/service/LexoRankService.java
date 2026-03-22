@@ -1,7 +1,13 @@
 package com.spotify.playlist.domain.service;
 
+import org.springframework.stereotype.Service;
+
 import com.spotify.playlist.domain.valueobject.LexoRank;
 
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
 public class LexoRankService {
     private static final int ALPHABET_START = 'a';
     private static final int ALPHABET_END = 'z';

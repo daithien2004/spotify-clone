@@ -1,8 +1,5 @@
 package com.spotify.playlist.application.usecase;
 
-import com.spotify.playlist.domain.entity.PlaylistTrack;
-import com.spotify.playlist.domain.repository.PlaylistTrackRepository;
-import com.spotify.playlist.domain.valueobject.LexoRank;
 import com.spotify.playlist.infrastructure.persistence.entity.PlaylistTrackJpaEntity;
 import com.spotify.playlist.infrastructure.persistence.repository.JpaPlaylistTrackRepository;
 import lombok.RequiredArgsConstructor;

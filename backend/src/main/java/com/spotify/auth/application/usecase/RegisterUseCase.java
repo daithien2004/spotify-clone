@@ -51,6 +51,6 @@ public class RegisterUseCase {
         
         String token = tokenPort.generateToken(user);
 
-        return new AuthResponse(token, user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl());
+        return new AuthResponse(token, user.getId().toString(), user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl());
     }
 }

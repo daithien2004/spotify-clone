@@ -1,7 +1,8 @@
 package com.spotify.playlist.infrastructure.persistence.adapter;
 
-import org.apache.el.stream.Optional;
-import org.hibernate.validator.constraints.UUID;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.stereotype.Component;
 
 import com.spotify.playlist.domain.entity.PlaylistTrack;
