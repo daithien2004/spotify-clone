@@ -1,4 +1,4 @@
-package com.spotify.auth.infrastructure.persistence;
+package com.spotify.auth.infrastructure.persistence.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -30,9 +30,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ErrorResponse> handleDomainException(DomainException ex) {
-        HttpStatus status = mapDomainExceptionToStatus(ex);
         return ResponseEntity
-                .status(status)
+                .status(ex.getStatusCode())
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
@@ -54,14 +53,4 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("An unexpected error occurred"));
     }
 
-    private HttpStatus mapDomainExceptionToStatus(DomainException ex) {
-        String message = ex.getMessage().toLowerCase();
-        if (message.contains("not found") || message.contains("invalid")) {
-            return HttpStatus.UNAUTHORIZED;
-        }
-        if (message.contains("already exists") || message.contains("duplicate")) {
-            return HttpStatus.CONFLICT;
-        }
-        return HttpStatus.BAD_REQUEST;
-    }
 }

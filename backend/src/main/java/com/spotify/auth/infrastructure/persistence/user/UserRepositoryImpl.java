@@ -1,12 +1,15 @@
-package com.spotify.auth.infrastructure.persistence;
+package com.spotify.auth.infrastructure.persistence.user;
 
 import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.repository.UserRepository;
 import com.spotify.auth.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -15,6 +18,7 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserJpaMapper mapper;
 
     @Override
+    @CacheEvict(value = "users", key = "#user.email.value()")
     public User save(User user) {
         UserJpaEntity entity = mapper.toJpaEntity(user);
         UserJpaEntity saved = jpaRepository.save(entity);
@@ -22,8 +26,15 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#email.value()")
     public Optional<User> findByEmail(Email email) {
         return jpaRepository.findByEmail(email.value())
+                .map(mapper::toDomainEntity);
+    }
+
+    @Override
+    public Optional<User> findById(UUID id) {
+        return jpaRepository.findById(id)
                 .map(mapper::toDomainEntity);
     }
 

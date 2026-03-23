@@ -13,10 +13,13 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class JwtTokenAdapter implements TokenPort {
     private final JwtConfig jwtConfig;
+    private final JwtBlacklistService jwtBlacklistService;
 
     @Override
     public String generateToken(User user) {
@@ -30,13 +33,31 @@ public class JwtTokenAdapter implements TokenPort {
     }
 
     @Override
+    public String generateRefreshToken() {
+        return UUID.randomUUID().toString(); // Opaque token stored in DB
+    }
+
+    @Override
+    public long getRefreshTokenExpirationMillis() {
+        return jwtConfig.getRefreshExpiration();
+    }
+
+    @Override
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();
     }
 
     @Override
+    public Date getExpirationFromToken(String token) {
+        return getClaims(token).getExpiration();
+    }
+
+    @Override
     public boolean validateToken(String token) {
         try {
+            if (jwtBlacklistService.isBlacklisted(token)) {
+                return false;
+            }
             return getClaims(token).getExpiration().after(new Date());
         } catch (Exception e) {
             return false;

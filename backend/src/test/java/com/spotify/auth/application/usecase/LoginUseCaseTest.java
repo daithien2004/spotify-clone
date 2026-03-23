@@ -1,7 +1,5 @@
 package com.spotify.auth.application.usecase;
 
-import com.spotify.auth.application.dto.AuthResponse;
-import com.spotify.auth.application.dto.LoginRequest;
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.entity.User;
@@ -39,7 +37,7 @@ class LoginUseCaseTest {
     @Test
     void should_LoginSuccessfully_when_CredentialsAreValid() {
         // Given
-        LoginRequest request = new LoginRequest("test@example.com", "password123");
+        LoginUseCase.Request request = new LoginUseCase.Request("test@example.com", "password123");
         User user = User.builder()
                 .email(new Email("test@example.com"))
                 .password(new Password("hashed-password"))
@@ -51,18 +49,18 @@ class LoginUseCaseTest {
         when(tokenPort.generateToken(user)).thenReturn("fake-jwt-token");
 
         // When
-        AuthResponse response = loginUseCase.execute(request);
+        LoginUseCase.Response response = loginUseCase.execute(request);
 
         // Then
         assertNotNull(response);
         assertEquals("test@example.com", response.email());
-        assertEquals("fake-jwt-token", response.token());
+        assertEquals("fake-jwt-token", response.accessToken());
     }
 
     @Test
     void should_ThrowException_when_PasswordIsInvalid() {
         // Given
-        LoginRequest request = new LoginRequest("test@example.com", "wrong-password");
+        LoginUseCase.Request request = new LoginUseCase.Request("test@example.com", "wrong-password");
         User user = User.builder()
                 .email(new Email("test@example.com"))
                 .password(new Password("hashed-password"))
@@ -78,7 +76,7 @@ class LoginUseCaseTest {
     @Test
     void should_ThrowException_when_UserNotFound() {
         // Given
-        LoginRequest request = new LoginRequest("nonexistent@example.com", "password123");
+        LoginUseCase.Request request = new LoginUseCase.Request("nonexistent@example.com", "password123");
         when(userRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
 
         // When & Then

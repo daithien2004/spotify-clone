@@ -1,4 +1,4 @@
-package com.spotify.auth.infrastructure.persistence;
+package com.spotify.auth.infrastructure.persistence.user;
 
 import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.valueobject.Email;

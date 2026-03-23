@@ -1,7 +1,5 @@
 package com.spotify.auth.application.usecase;
 
-import com.spotify.auth.application.dto.AuthResponse;
-import com.spotify.auth.application.dto.RegisterRequest;
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.entity.User;
@@ -40,19 +38,19 @@ class RegisterUseCaseTest {
     @Test
     void should_RegisterSuccessfully_when_UserDoesNotExist() {
         // Given
-        RegisterRequest request = new RegisterRequest("test@example.com", "password123", "User Name", "avatar.url");
+        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "password123", "User Name", "avatar.url");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(false);
         when(passwordEncoderPort.encode(anyString())).thenReturn("hashed-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(tokenPort.generateToken(any(User.class))).thenReturn("fake-jwt-token");
 
         // When
-        AuthResponse response = registerUseCase.execute(request);
+        RegisterUseCase.Response response = registerUseCase.execute(request);
 
         // Then
         assertNotNull(response);
         assertEquals("test@example.com", response.email());
-        assertEquals("fake-jwt-token", response.token());
+        assertEquals("fake-jwt-token", response.accessToken());
         verify(userRepository).save(any(User.class));
         verify(domainEventPublisher).publish(any());
     }
@@ -60,7 +58,7 @@ class RegisterUseCaseTest {
     @Test
     void should_ThrowException_when_UserAlreadyExists() {
         // Given
-        RegisterRequest request = new RegisterRequest("test@example.com", "password123", "User Name", "avatar.url");
+        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "password123", "User Name", "avatar.url");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(true);
 
         // When & Then
