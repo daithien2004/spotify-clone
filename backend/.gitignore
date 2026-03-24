@@ -55,3 +55,8 @@ HELP.md
 
 ### Mac OS ###
 .DS_Store
+
+### Certs ###
+*.der
+*.pem
+*.key

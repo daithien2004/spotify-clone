@@ -1,10 +1,8 @@
 package com.spotify.auth.presentation.controller;
 
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,8 +46,18 @@ public class AuthController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(
-            @Valid @RequestBody LogoutUseCase.Request request,
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
-        logoutUseCase.execute(request, authHeader);
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            @Valid @RequestBody LogoutUseCase.Request request
+    ) {
+        // If accessToken is missing in body, try to get from Authorization header
+        String accessToken = request.accessToken();
+        if (accessToken == null || accessToken.isBlank()) {
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7);
+            }
+        }
+        
+        logoutUseCase.execute(new LogoutUseCase.Request(request.refreshToken(), accessToken));
     }
 }

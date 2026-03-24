@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.Set;
+import java.util.Collections;
 import java.util.UUID;
 
 @Getter
@@ -21,6 +23,8 @@ public class User implements Serializable {
     private Password password;
     private String displayName;
     private String avatarUrl;
+    @Builder.Default
+    private Set<Role> roles = Collections.singleton(Role.ROLE_USER);
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 

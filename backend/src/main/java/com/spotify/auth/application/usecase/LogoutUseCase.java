@@ -1,48 +1,59 @@
 package com.spotify.auth.application.usecase;
 
-import java.util.Date;
-
+import com.spotify.auth.application.port.out.TokenPort;
+import com.spotify.auth.domain.repository.RefreshTokenRepository;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.validation.constraints.NotBlank;
-import com.spotify.auth.application.port.out.TokenPort;
-import com.spotify.auth.domain.repository.RefreshTokenRepository;
-import com.spotify.auth.infrastructure.security.JwtBlacklistService;
-
-import lombok.RequiredArgsConstructor;
+import java.time.Duration;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LogoutUseCase {
 
     public record Request(
-            @NotBlank(message = "Refresh token is required") String refreshToken
+            @NotBlank(message = "Refresh token is required") String refreshToken,
+            @NotBlank(message = "Access token is required") String accessToken
     ) {}
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final JwtBlacklistService jwtBlacklistService;
+    private final StringRedisTemplate redisTemplate;
     private final TokenPort tokenPort;
 
     @Transactional
-    public void execute(Request request, String accessToken) {
-        // Revoke the refresh token
+    public void execute(Request request) {
+        // 1. Revoke the refresh token in DB
         refreshTokenRepository.findByToken(request.refreshToken())
                 .ifPresent(rt -> {
                     rt.revoke();
                     refreshTokenRepository.save(rt);
+                    log.debug("Refresh token revoked for user");
                 });
 
-        // Blacklist the access token
-        if (accessToken != null && accessToken.startsWith("Bearer ")) {
-            String token = accessToken.substring(7);
-            try {
-                Date expiration = tokenPort.getExpirationFromToken(token);
-                long timeLeft = expiration.getTime() - System.currentTimeMillis();
-                jwtBlacklistService.blacklistToken(token, timeLeft);
-            } catch (Exception e) {
-                // Token might already be expired or invalid, skipping blacklist safely
+        // 2. Blacklist the access token in Redis
+        try {
+            String tokenHash = DigestUtils.sha256Hex(request.accessToken());
+            Date expiration = tokenPort.getExpirationFromToken(request.accessToken());
+            long ttlMillis = expiration.getTime() - System.currentTimeMillis();
+
+            if (ttlMillis > 0) {
+                redisTemplate.opsForValue().set(
+                        "blacklist:" + tokenHash,
+                        "true",
+                        Duration.ofMillis(ttlMillis)
+                );
+                log.info("Access token blacklisted successfully");
             }
+        } catch (Exception e) {
+            log.error("Failed to blacklist access token: {}", e.getClass().getSimpleName());
+            // We don't fail the whole logout if blacklist fails, but we log it.
         }
     }
 }

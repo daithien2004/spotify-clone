@@ -5,36 +5,62 @@ import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.infrastructure.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
+import org.springframework.util.FileCopyUtils;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
-
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class JwtTokenAdapter implements TokenPort {
     private final JwtConfig jwtConfig;
-    private final JwtBlacklistService jwtBlacklistService;
+    private final ResourceLoader resourceLoader;
+
+    private PrivateKey getPrivateKey() {
+        try {
+            byte[] keyBytes = FileCopyUtils.copyToByteArray(resourceLoader.getResource(jwtConfig.getPrivateKeyPath()).getInputStream());
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not load private key", e);
+        }
+    }
+
+    private PublicKey getPublicKey() {
+        try {
+            byte[] keyBytes = FileCopyUtils.copyToByteArray(resourceLoader.getResource(jwtConfig.getPublicKeyPath()).getInputStream());
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePublic(spec);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not load public key", e);
+        }
+    }
 
     @Override
     public String generateToken(User user) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .subject(user.getEmail().value())
+                .claim("id", user.getId().toString())
+                .claim("roles", user.getRoles())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-                .signWith(key)
+                .signWith(getPrivateKey())
                 .compact();
     }
 
     @Override
     public String generateRefreshToken() {
-        return UUID.randomUUID().toString(); // Opaque token stored in DB
+        return UUID.randomUUID().toString();
     }
 
     @Override
@@ -55,9 +81,6 @@ public class JwtTokenAdapter implements TokenPort {
     @Override
     public boolean validateToken(String token) {
         try {
-            if (jwtBlacklistService.isBlacklisted(token)) {
-                return false;
-            }
             return getClaims(token).getExpiration().after(new Date());
         } catch (Exception e) {
             return false;
@@ -65,9 +88,8 @@ public class JwtTokenAdapter implements TokenPort {
     }
 
     private Claims getClaims(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(getPublicKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

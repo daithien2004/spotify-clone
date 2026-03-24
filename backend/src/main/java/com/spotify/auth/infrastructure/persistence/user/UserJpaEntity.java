@@ -1,9 +1,13 @@
 package com.spotify.auth.infrastructure.persistence.user;
 
+import com.spotify.auth.domain.entity.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import com.spotify.auth.infrastructure.persistence.BaseJpaEntity;
 
@@ -24,5 +28,11 @@ public class UserJpaEntity extends BaseJpaEntity {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private Set<Role> roles = new HashSet<>();
 
 }
