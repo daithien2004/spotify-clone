@@ -4,12 +4,10 @@ This document bridges the gap between microservices. For detailed domain logic, 
 
 ## Bounded Context Registry
 
-| Service | Responsibility | Local Context Location |
-| :--- | :--- | :--- |
-| **Auth** | User identity, password security | `com/spotify/auth/.agent-context.md` |
-| **Playlist** | Track ordering, collections | `com/spotify/playlist/.agent-context.md` |
-| **Track** (Backlog) | Upload, streaming, metadata | `com/spotify/track/.agent-context.md` |
-| **Search** (Backlog) | Elasticsearch indexing | `com/spotify/search/.agent-context.md` |
+| **Auth** | User identity, password security | 
+| **Playlist** | Track ordering, collections | 
+| **Track** (Backlog) | Upload, streaming, metadata | 
+| **Search** (Backlog) | Elasticsearch indexing | 
 
 ## Global Cross-Cutting Concerns
 

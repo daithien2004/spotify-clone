@@ -1,18 +1,30 @@
 package com.spotify.auth.presentation.controller;
 
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.spotify.auth.application.usecase.ForgotPasswordUseCase;
+import com.spotify.auth.application.usecase.LoginUseCase;
+import com.spotify.auth.application.usecase.LogoutUseCase;
+import com.spotify.auth.application.usecase.RefreshTokenUseCase;
+import com.spotify.auth.application.usecase.RegisterUseCase;
+import com.spotify.auth.application.usecase.RequestEmailVerificationUseCase;
+import com.spotify.auth.application.usecase.ResetPasswordUseCase;
+import com.spotify.auth.application.usecase.TwoFactorAuthUseCase;
+import com.spotify.auth.application.usecase.VerifyEmailUseCase;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
-
-import com.spotify.auth.application.usecase.*;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")

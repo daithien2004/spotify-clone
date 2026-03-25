@@ -25,7 +25,9 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
   # ===== Email Configuration =====
   # Thay bằng thông tin SMTP thật khi deploy production
   # Khuyến nghị: dùng SendGrid, AWS SES, hoặc Mailgun
@@ -42,7 +44,6 @@ spring:
           starttls:
             enable: true
             required: true
-
   # ===== Kafka Configuration =====
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -54,8 +55,7 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-    enabled: ${KAFKA_ENABLED:false}  # false khi chạy local, true trên production
-
+    enabled: ${KAFKA_ENABLED:false}
   # ===== Async (cho JavaMailAdapter @Async) =====
   task:
     execution:
@@ -67,8 +67,8 @@ spring:
 jwt:
   private-key-path: classpath:certs/private_key.der
   public-key-path: classpath:certs/public_key.der
-  expiration: 900000          # 15 phút (ms) — Access Token ngắn hạn
-  refresh-expiration: 604800000  # 7 ngày (ms) — Refresh Token dài hạn
+  expiration: 900000
+  refresh-expiration: 604800000
 
 # ===== App Config =====
 app:
@@ -78,7 +78,7 @@ app:
 totp:
   issuer: Spotify Clone
   digits: 6
-  period: 30   # Giây (window của TOTP code)
+  period: 30
 
 # ===== OpenAPI / Swagger UI =====
 springdoc:
