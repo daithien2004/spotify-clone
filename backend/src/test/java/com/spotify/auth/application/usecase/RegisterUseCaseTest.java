@@ -5,6 +5,7 @@ import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.exception.UserAlreadyExistsException;
 import com.spotify.auth.domain.repository.DomainEventPublisher;
+import com.spotify.auth.domain.repository.RefreshTokenRepository;
 import com.spotify.auth.domain.repository.UserRepository;
 import com.spotify.auth.domain.valueobject.Email;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,9 @@ class RegisterUseCaseTest {
     private UserRepository userRepository;
 
     @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
     private PasswordEncoderPort passwordEncoderPort;
 
     @Mock
@@ -37,10 +41,10 @@ class RegisterUseCaseTest {
 
     @Test
     void should_RegisterSuccessfully_when_UserDoesNotExist() {
-        // Given
-        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "password123", "User Name", "avatar.url");
+        // Given // Thay bằng password có cả chữ lẫn số
+        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "Test1234", "User Name", "avatar.url");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(false);
-        when(passwordEncoderPort.encode(anyString())).thenReturn("hashed-password");
+        when(passwordEncoderPort.encode(anyString())).thenReturn("Hashed1234");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(tokenPort.generateToken(any(User.class))).thenReturn("fake-jwt-token");
 
@@ -58,7 +62,7 @@ class RegisterUseCaseTest {
     @Test
     void should_ThrowException_when_UserAlreadyExists() {
         // Given
-        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "password123", "User Name", "avatar.url");
+        RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "Test1234", "User Name", "avatar.url");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(true);
 
         // When & Then

@@ -28,4 +28,16 @@ public class RefreshTokenJpaEntity extends BaseJpaEntity {
     @Column(name = "revoked", nullable = false)
     private boolean revoked = false;
 
+    @Column(name = "family_id", nullable = false)
+    private UUID familyId;
+
+    @Column(name = "replaced_by")
+    private String replacedBy;
+
+    @Column(name = "ip_address", length = 100)
+    private String ipAddress;
+
+    @Column(name = "user_agent", length = 512)
+    private String userAgent;
+
 }

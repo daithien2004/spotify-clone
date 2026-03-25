@@ -5,8 +5,10 @@ import com.spotify.auth.domain.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -30,5 +32,12 @@ public class RefreshTokenRepositoryImpl implements RefreshTokenRepository {
     @Override
     public void revokeAllUserTokens(UUID userId) {
         jpaRepository.revokeAllUserTokens(userId);
+    }
+
+    @Override
+    public List<RefreshToken> findAllByFamilyId(UUID familyId) {
+        return jpaRepository.findByFamilyId(familyId).stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
     }
 }

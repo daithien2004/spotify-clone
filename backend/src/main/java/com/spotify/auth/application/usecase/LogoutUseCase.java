@@ -1,5 +1,7 @@
 package com.spotify.auth.application.usecase;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.repository.RefreshTokenRepository;
 import jakarta.validation.constraints.NotBlank;
@@ -18,9 +20,9 @@ import java.util.Date;
 @Slf4j
 public class LogoutUseCase {
 
+    @Schema(name = "LogoutRequest")
     public record Request(
-            @NotBlank(message = "Refresh token is required") String refreshToken,
-            @NotBlank(message = "Access token is required") String accessToken
+            @NotBlank(message = "Refresh token is required") String refreshToken
     ) {}
 
     private final RefreshTokenRepository refreshTokenRepository;
@@ -28,7 +30,7 @@ public class LogoutUseCase {
     private final TokenPort tokenPort;
 
     @Transactional
-    public void execute(Request request) {
+    public void execute(Request request, String accessToken) {
         // 1. Revoke the refresh token in DB
         refreshTokenRepository.findByToken(request.refreshToken())
                 .ifPresent(rt -> {
@@ -39,17 +41,19 @@ public class LogoutUseCase {
 
         // 2. Blacklist the access token in Redis
         try {
-            String tokenHash = DigestUtils.sha256Hex(request.accessToken());
-            Date expiration = tokenPort.getExpirationFromToken(request.accessToken());
-            long ttlMillis = expiration.getTime() - System.currentTimeMillis();
+            if (accessToken != null && !accessToken.isBlank()) {
+                String tokenHash = DigestUtils.sha256Hex(accessToken);
+                Date expiration = tokenPort.getExpirationFromToken(accessToken);
+                long ttlMillis = expiration.getTime() - System.currentTimeMillis();
 
-            if (ttlMillis > 0) {
-                redisTemplate.opsForValue().set(
-                        "blacklist:" + tokenHash,
-                        "true",
-                        Duration.ofMillis(ttlMillis)
-                );
-                log.info("Access token blacklisted successfully");
+                if (ttlMillis > 0) {
+                    redisTemplate.opsForValue().set(
+                            "blacklist:" + tokenHash,
+                            "true",
+                            Duration.ofMillis(ttlMillis)
+                    );
+                    log.info("Access token blacklisted successfully");
+                }
             }
         } catch (Exception e) {
             log.error("Failed to blacklist access token: {}", e.getClass().getSimpleName());
