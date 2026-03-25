@@ -26,8 +26,64 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  # ===== Email Configuration =====
+  # Thay bằng thông tin SMTP thật khi deploy production
+  # Khuyến nghị: dùng SendGrid, AWS SES, hoặc Mailgun
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # ===== Kafka Configuration =====
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: auth-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    enabled: ${KAFKA_ENABLED:false}  # false khi chạy local, true trên production
+
+  # ===== Async (cho JavaMailAdapter @Async) =====
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 16
+        queue-capacity: 100
+
 jwt:
   private-key-path: classpath:certs/private_key.der
   public-key-path: classpath:certs/public_key.der
-  expiration: 86400000 # 1 day in milliseconds
-  refresh-expiration: 604800000 # 7 days in milliseconds
+  expiration: 900000          # 15 phút (ms) — Access Token ngắn hạn
+  refresh-expiration: 604800000  # 7 ngày (ms) — Refresh Token dài hạn
+
+# ===== App Config =====
+app:
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+
+# ===== TOTP 2FA Config =====
+totp:
+  issuer: Spotify Clone
+  digits: 6
+  period: 30   # Giây (window của TOTP code)
+
+# ===== OpenAPI / Swagger UI =====
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method

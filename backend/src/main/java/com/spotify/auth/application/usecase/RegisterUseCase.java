@@ -1,5 +1,7 @@
 package com.spotify.auth.application.usecase;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,18 +18,18 @@ import com.spotify.auth.domain.exception.UserAlreadyExistsException;
 import com.spotify.auth.domain.repository.DomainEventPublisher;
 import com.spotify.auth.domain.repository.RefreshTokenRepository;
 import com.spotify.auth.domain.repository.UserRepository;
-import com.spotify.auth.domain.valueobject.Email;
 import com.spotify.auth.domain.valueobject.Password;
+import com.spotify.auth.domain.valueobject.Email;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class RegisterUseCase {
 
+    @Schema(name = "RegisterRequest")
     public record Request(
             @NotBlank(message = "Email is required") @jakarta.validation.constraints.Email(message = "Invalid email format") String email,
             @NotBlank(message = "Password is required") @Size(min = 8, message = "Password must be at least 8 characters") String password,
@@ -35,6 +37,7 @@ public class RegisterUseCase {
             String avatarUrl
     ) {}
 
+    @Schema(name = "RegisterResponse")
     public record Response(String accessToken, String refreshToken, String userId, String email, String displayName, String avatarUrl) {}
 
     private final UserRepository userRepository;

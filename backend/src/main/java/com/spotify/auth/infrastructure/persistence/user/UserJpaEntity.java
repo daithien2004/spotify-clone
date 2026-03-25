@@ -35,4 +35,22 @@ public class UserJpaEntity extends BaseJpaEntity {
     @Enumerated(EnumType.STRING)
     private Set<Role> roles = new HashSet<>();
 
+    // === Email Verification ===
+    @Column(name = "is_verified", nullable = false)
+    private boolean isVerified = false;
+
+    // === Two-Factor Authentication ===
+    @Column(name = "totp_secret")
+    private String totpSecret;
+
+    @Column(name = "is_2fa_enabled", nullable = false)
+    private boolean is2faEnabled = false;
+
+    // === Account Lockout ===
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "locked_until")
+    private java.time.OffsetDateTime lockedUntil;
+
 }
