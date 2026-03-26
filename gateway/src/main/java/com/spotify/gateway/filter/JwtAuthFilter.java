@@ -5,7 +5,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -34,6 +34,7 @@ import java.util.List;
 
 /**
  * Gateway filter for JWT authentication with RSA validation and Redis blacklist support.
+ * Supports both Authorization header and HttpOnly cookies.
  */
 @Component
 @Slf4j
@@ -74,16 +75,11 @@ public class JwtAuthFilter implements GatewayFilter {
         
         ServerWebExchange mutatedExchange = exchange.mutate().request(request).build();
 
-        if (!request.getHeaders().containsKey("Authorization")) {
-            return unauthorized(mutatedExchange, "Missing Authorization Header");
+        String token = extractToken(request);
+        if (token == null) {
+            return unauthorized(mutatedExchange, "Missing Authentication Token");
         }
 
-        String authHeader = request.getHeaders().getOrEmpty("Authorization").get(0);
-        if (!authHeader.startsWith("Bearer ")) {
-            return unauthorized(mutatedExchange, "Invalid Authorization Header");
-        }
-
-        String token = authHeader.substring(7);
         String tokenHash = DigestUtils.sha256Hex(token);
 
         return checkBlacklist(tokenHash)
@@ -95,6 +91,20 @@ public class JwtAuthFilter implements GatewayFilter {
                             .flatMap(claims -> buildAuthenticatedRequest(claims, mutatedExchange, chain))
                             .onErrorResume(e -> handleJwtError(e, mutatedExchange));
                 });
+    }
+
+    private String extractToken(ServerHttpRequest request) {
+        String authHeader = request.getHeaders().getFirst("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        HttpCookie cookie = request.getCookies().getFirst("auth-token");
+        if (cookie != null) {
+            return cookie.getValue();
+        }
+
+        return null;
     }
 
     private Mono<Boolean> checkBlacklist(String tokenHash) {

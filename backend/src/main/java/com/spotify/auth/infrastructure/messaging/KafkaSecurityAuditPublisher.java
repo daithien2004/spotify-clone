@@ -30,12 +30,10 @@ public class KafkaSecurityAuditPublisher implements SecurityAuditPublisher {
     @Override
     public void publish(String userId, String email, EventType eventType,
                         String ipAddress, String userAgent, String detail) {
-        // Audit log luôn được ghi vào application logs (không gian đoạn)
         log.info("[SECURITY_AUDIT] event={} userId={} email={} ip={} ua={} detail={}",
                 eventType, userId, email, ipAddress, userAgent, detail);
 
         if (!kafkaEnabled) {
-            // Dev/Test mode: chỉ log, không gửi Kafka
             return;
         }
 
@@ -49,7 +47,6 @@ public class KafkaSecurityAuditPublisher implements SecurityAuditPublisher {
                 "occurredAt", Instant.now().toString()
         );
 
-        // Dùng userId làm partition key để đảm bảo ordering per user
         kafkaTemplate.send(TOPIC, userId != null ? userId : "unknown", event)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {

@@ -74,7 +74,6 @@ class LoginUseCaseTest {
         assertNotNull(response);
         assertEquals("test@example.com", response.email());
         assertEquals("fake-jwt-token", response.accessToken());
-        assertFalse(response.requires2fa());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.spotify.auth.application.usecase;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Duration;
@@ -38,7 +39,15 @@ public class RegisterUseCase {
     ) {}
 
     @Schema(name = "RegisterResponse")
-    public record Response(String accessToken, String refreshToken, String userId, String email, String displayName, String avatarUrl) {}
+    public record Response(
+            @JsonIgnore String accessToken,
+            @JsonIgnore String refreshToken,
+            String userId,
+            String email,
+            String displayName,
+            String avatarUrl,
+            long expiresIn
+    ) {}
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -76,13 +85,16 @@ public class RegisterUseCase {
                 .id(UUID.randomUUID())
                 .token(refreshTokenStr)
                 .userId(user.getId())
+                .familyId(UUID.randomUUID())
                 .expiresAt(OffsetDateTime.now().plus(Duration.ofMillis(tokenPort.getRefreshTokenExpirationMillis())))
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
         refreshTokenRepository.save(refreshToken);
 
+        long expiresIn = tokenPort.getAccessTokenExpirationMillis() / 1000;
+
         return new Response(token, refreshTokenStr, user.getId().toString(), user.getEmail().value(),
-                user.getDisplayName(), user.getAvatarUrl());
+                user.getDisplayName(), user.getAvatarUrl(), expiresIn);
     }
 }

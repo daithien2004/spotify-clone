@@ -1,5 +1,6 @@
 package com.spotify.auth.application.usecase;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Duration;
@@ -33,8 +34,15 @@ public class RefreshTokenUseCase {
     ) {}
 
     @Schema(name = "RefreshTokenResponse")
-    public record Response(String accessToken, String refreshToken, String userId,
-                           String email, String displayName, String avatarUrl) {}
+    public record Response(
+            @JsonIgnore String accessToken,
+            @JsonIgnore String refreshToken,
+            String userId,
+            String email,
+            String displayName,
+            String avatarUrl,
+            long expiresIn
+    ) {}
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
@@ -46,9 +54,6 @@ public class RefreshTokenUseCase {
         RefreshToken rt = refreshTokenRepository.findByToken(request.refreshToken())
                 .orElseThrow(() -> new DomainException("Invalid refresh token"));
 
-        // === REFRESH TOKEN REUSE DETECTION ===
-        // Nếu token đã bị revoke MÀ vẫn được dùng lại → token bị đánh cắp!
-        // Revoke toàn bộ Token Family (tức là force logout tất cả thiết bị của user).
         if (rt.isRevoked()) {
             List<RefreshToken> familyTokens = refreshTokenRepository.findAllByFamilyId(rt.getFamilyId());
             familyTokens.forEach(token -> {
@@ -64,7 +69,6 @@ public class RefreshTokenUseCase {
             throw new DomainException("Security alert: Refresh token reuse detected. All sessions have been terminated.");
         }
 
-        // Kiểm tra hạn sử dụng
         if (!rt.isValid()) {
             throw new DomainException("Refresh token is expired");
         }
@@ -72,16 +76,15 @@ public class RefreshTokenUseCase {
         User user = userRepository.findById(rt.getUserId())
                 .orElseThrow(() -> new DomainException("User not found"));
 
-        // === TOKEN ROTATION: Invalidate token cũ, cấp token mới trong cùng family ===
         String newRefreshTokenStr = tokenPort.generateRefreshToken();
-        rt.markReplacedBy(newRefreshTokenStr); // Revoke token cũ và ghi lại token mới
+        rt.markReplacedBy(newRefreshTokenStr);
         refreshTokenRepository.save(rt);
 
         RefreshToken newRefreshToken = RefreshToken.builder()
                 .id(UUID.randomUUID())
                 .token(newRefreshTokenStr)
                 .userId(user.getId())
-                .familyId(rt.getFamilyId()) // Giữ nguyên familyId để tracking cùng phiên
+                .familyId(rt.getFamilyId())
                 .ipAddress(request.ipAddress())
                 .userAgent(request.userAgent())
                 .expiresAt(OffsetDateTime.now().plus(Duration.ofMillis(tokenPort.getRefreshTokenExpirationMillis())))
@@ -91,8 +94,9 @@ public class RefreshTokenUseCase {
         refreshTokenRepository.save(newRefreshToken);
 
         String newAccessToken = tokenPort.generateToken(user);
+        long expiresIn = tokenPort.getAccessTokenExpirationMillis() / 1000;
 
         return new Response(newAccessToken, newRefreshTokenStr, user.getId().toString(),
-                user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl());
+                user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl(), expiresIn);
     }
 }

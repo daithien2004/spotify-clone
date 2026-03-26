@@ -10,9 +10,8 @@ export interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
 }
@@ -21,24 +20,20 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
 
-      setAuth: (user, token) => {
-        if (typeof document !== 'undefined') {
-          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-        }
-        set({ user, token });
+      setAuth: (user) => {
+        // Token is now handled by HttpOnly cookie from server
+        set({ user });
       },
 
       clearAuth: () => {
-        if (typeof document !== 'undefined') {
-          document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        }
-        set({ user: null, token: null });
+        // Cookie clearing is handled by server-side logout, 
+        // but we can also clear client-side user state instantly.
+        set({ user: null });
       },
 
       isAuthenticated: () => {
-        return get().token !== null && get().user !== null;
+        return get().user !== null;
       },
     }),
     {
@@ -46,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
+        // No accessToken persisted in localStorage anymore!
       }),
     }
   )

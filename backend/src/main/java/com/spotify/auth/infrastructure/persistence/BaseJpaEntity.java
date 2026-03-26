@@ -23,14 +23,12 @@ public abstract class BaseJpaEntity implements Persistable<UUID> {
         return _isNew;
     }
 
-    @PrePersist
     @PostLoad
     void markNotNew() {
         this._isNew = false;
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @CreationTimestamp

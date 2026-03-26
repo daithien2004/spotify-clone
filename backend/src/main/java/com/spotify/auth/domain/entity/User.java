@@ -34,11 +34,6 @@ public class User implements Serializable {
     @Builder.Default
     private boolean isVerified = false;
 
-    // === Two-Factor Authentication (TOTP) ===
-    private String totpSecret;     // Base32 secret cho Google Authenticator
-    @Builder.Default
-    private boolean twoFaEnabled = false;  // Đổi tên để tránh Lombok tạo isIs2faEnabled()
-
     // === Account Lockout (Brute Force Protection) ===
     @Builder.Default
     private int failedLoginAttempts = 0;
@@ -98,20 +93,6 @@ public class User implements Serializable {
     public void recordSuccessfulLogin() {
         this.failedLoginAttempts = 0;
         this.lockedUntil = null;
-        this.updatedAt = OffsetDateTime.now();
-    }
-
-    /** Bật 2FA sau khi user xác nhận TOTP code đúng */
-    public void enable2fa(String totpSecret) {
-        this.totpSecret = totpSecret;
-        this.twoFaEnabled = true;
-        this.updatedAt = OffsetDateTime.now();
-    }
-
-    /** Tắt 2FA */
-    public void disable2fa() {
-        this.totpSecret = null;
-        this.twoFaEnabled = false;
         this.updatedAt = OffsetDateTime.now();
     }
 }

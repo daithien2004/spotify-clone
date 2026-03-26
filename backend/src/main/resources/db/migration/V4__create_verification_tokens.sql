@@ -6,7 +6,7 @@ CREATE TABLE security_tokens (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     token       VARCHAR(512) NOT NULL UNIQUE,
     user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_type  VARCHAR(50) NOT NULL, -- 'EMAIL_VERIFICATION', 'PASSWORD_RESET', '2FA_SETUP'
+    token_type  VARCHAR(50) NOT NULL, -- 'EMAIL_VERIFICATION', 'PASSWORD_RESET'
     used_at     TIMESTAMPTZ,
     expires_at  TIMESTAMPTZ NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),

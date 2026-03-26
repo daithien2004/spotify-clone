@@ -21,6 +21,10 @@ spring:
               - Authorization
               - Content-Type
               - Accept
+              - X-Request-ID
+              - X-Auth-Token
+            exposedHeaders:
+              - Set-Cookie
             allowCredentials: true
 
 jwt:

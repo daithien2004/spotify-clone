@@ -59,6 +59,11 @@ public class JwtTokenAdapter implements TokenPort {
     }
 
     @Override
+    public long getAccessTokenExpirationMillis() {
+        return jwtConfig.getExpiration();
+    }
+
+    @Override
     public String generateRefreshToken() {
         return UUID.randomUUID().toString();
     }

@@ -7,6 +7,7 @@ import java.util.Date;
 public interface TokenPort {
     String generateToken(User user);
     String generateRefreshToken();
+    long getAccessTokenExpirationMillis();
     long getRefreshTokenExpirationMillis();
     String getEmailFromToken(String token);
     Date getExpirationFromToken(String token);

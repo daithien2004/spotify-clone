@@ -39,13 +39,6 @@ public class UserJpaEntity extends BaseJpaEntity {
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
 
-    // === Two-Factor Authentication ===
-    @Column(name = "totp_secret")
-    private String totpSecret;
-
-    @Column(name = "is_2fa_enabled", nullable = false)
-    private boolean is2faEnabled = false;
-
     // === Account Lockout ===
     @Column(name = "failed_login_attempts", nullable = false)
     private int failedLoginAttempts = 0;

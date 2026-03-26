@@ -12,15 +12,12 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => AuthService.login(data),
     onSuccess: (data) => {
-      setAuth(
-        {
-          id: data.id,
-          email: data.email,
-          displayName: data.displayName,
-          avatarUrl: data.avatarUrl,
-        },
-        data.token
-      );
+      setAuth({
+        id: data.userId,
+        email: data.email,
+        displayName: data.displayName,
+        avatarUrl: data.avatarUrl,
+      });
       router.push("/");
     },
   });
@@ -33,15 +30,12 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: (data: RegisterRequest) => AuthService.register(data),
     onSuccess: (data) => {
-      setAuth(
-        {
-          id: data.id,
-          email: data.email,
-          displayName: data.displayName,
-          avatarUrl: data.avatarUrl,
-        },
-        data.token
-      );
+      setAuth({
+        id: data.userId,
+        email: data.email,
+        displayName: data.displayName,
+        avatarUrl: data.avatarUrl,
+      });
       router.push("/");
     },
   });
@@ -51,9 +45,13 @@ export const useLogout = () => {
   const router = useRouter();
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  return useCallback(() => {
-    clearAuth();
-    router.push("/login");
+  return useCallback(async () => {
+    try {
+      await AuthService.logout();
+    } finally {
+      clearAuth();
+      router.push("/login");
+    }
   }, [clearAuth, router]);
 };
 

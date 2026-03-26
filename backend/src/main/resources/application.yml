@@ -26,7 +26,6 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
   jackson:
-    property-naming-strategy: SNAKE_CASE
     default-property-inclusion: NON_NULL
   # ===== Email Configuration =====
   # Thay bằng thông tin SMTP thật khi deploy production
@@ -55,7 +54,7 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-    enabled: ${KAFKA_ENABLED:false}
+    enabled: ${KAFKA_ENABLED:true}
   # ===== Async (cho JavaMailAdapter @Async) =====
   task:
     execution:
@@ -73,6 +72,7 @@ jwt:
 # ===== App Config =====
 app:
   base-url: ${APP_BASE_URL:http://localhost:3000}
+  cookie-domain: ${COOKIE_DOMAIN:localhost}
 
 # ===== TOTP 2FA Config =====
 totp:

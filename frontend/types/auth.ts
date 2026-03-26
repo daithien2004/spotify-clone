@@ -1,9 +1,11 @@
 export interface AuthResponse {
-  token: string;
-  id: string;
+  accessToken?: string;
+  refreshToken?: string;
+  userId: string;
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  expiresIn: number;
 }
 
 export interface LoginRequest {

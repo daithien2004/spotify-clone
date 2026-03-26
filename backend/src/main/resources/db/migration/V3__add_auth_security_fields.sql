@@ -1,14 +1,10 @@
 -- Thêm các trường bảo mật vào bảng users cho Authentication nâng cao
 -- is_verified: Xác thực email
--- totp_secret: Bí mật TOTP cho 2FA
--- is_2fa_enabled: 2FA đã được bật chưa
 -- failed_login_attempts: Theo dõi số lần đăng nhập thất bại (chống Brute Force)
 -- locked_until: Tài khoản bị khoá đến thời điểm nào
 
 ALTER TABLE users
     ADD COLUMN is_verified        BOOLEAN      NOT NULL DEFAULT FALSE,
-    ADD COLUMN totp_secret        VARCHAR(255),
-    ADD COLUMN is_2fa_enabled     BOOLEAN      NOT NULL DEFAULT FALSE,
     ADD COLUMN failed_login_attempts INTEGER   NOT NULL DEFAULT 0,
     ADD COLUMN locked_until       TIMESTAMPTZ;
 
