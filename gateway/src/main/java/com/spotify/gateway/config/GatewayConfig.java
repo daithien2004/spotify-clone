@@ -12,6 +12,9 @@ public class GatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtAuthFilter authFilter) {
         return builder.routes()
+                // OAuth2 endpoints - bypass JWT filter entirely
+                .route("auth-oauth2", r -> r.path("/oauth2/**", "/login/oauth2/**")
+                        .uri("http://localhost:8080"))
                 .route("auth-service-login", r -> r.path("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh")
                         .uri("http://localhost:8080")) // Forward to Auth Service without JWT check
                 .route("auth-service-protected", r -> r.path("/api/v1/auth/**")

@@ -66,7 +66,6 @@ public class RegisterUseCase {
         String encodedPassword = passwordEncoderPort.encode(password.value());
 
         User user = User.builder()
-                .id(UUID.randomUUID())
                 .email(email)
                 .password(new Password(encodedPassword))
                 .displayName(request.displayName())
@@ -82,7 +81,6 @@ public class RegisterUseCase {
         String refreshTokenStr = tokenPort.generateRefreshToken();
 
         RefreshToken refreshToken = RefreshToken.builder()
-                .id(UUID.randomUUID())
                 .token(refreshTokenStr)
                 .userId(user.getId())
                 .familyId(UUID.randomUUID())

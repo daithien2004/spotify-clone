@@ -12,7 +12,6 @@ public interface UserJpaMapper {
 
     @Mapping(target = "email", source = "email", qualifiedByName = "mapEmailToString")
     @Mapping(target = "password", source = "password", qualifiedByName = "mapPasswordToString")
-    @Mapping(target = "_isNew", ignore = true)
     @Mapping(target = "verified", source = "verified")
     UserJpaEntity toJpaEntity(User user);
 

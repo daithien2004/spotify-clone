@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.domain.Persistable;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,22 +12,10 @@ import java.util.UUID;
 @MappedSuperclass
 @Getter
 @Setter
-public abstract class BaseJpaEntity implements Persistable<UUID> {
-
-    @Transient
-    private boolean _isNew = true;
-
-    @Override
-    public boolean isNew() {
-        return _isNew;
-    }
-
-    @PostLoad
-    void markNotNew() {
-        this._isNew = false;
-    }
+public abstract class BaseJpaEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @CreationTimestamp

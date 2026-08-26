@@ -20,7 +20,7 @@ public class UserJpaEntity extends BaseJpaEntity {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = true)
     private String password;
 
     @Column(name = "display_name", nullable = false)
@@ -45,5 +45,12 @@ public class UserJpaEntity extends BaseJpaEntity {
 
     @Column(name = "locked_until")
     private java.time.OffsetDateTime lockedUntil;
+
+    // === OAuth2 Provider ===
+    @Column(name = "provider", nullable = false)
+    private String provider = "local";
+
+    @Column(name = "provider_id")
+    private String providerId;
 
 }

@@ -17,4 +17,8 @@ export class AuthService {
   static async refresh(): Promise<AuthResponse> {
     return api.post<AuthResponse>("/auth/refresh", {});
   }
+
+  static async me(): Promise<any> {
+    return api.get("/auth/me");
+  }
 }

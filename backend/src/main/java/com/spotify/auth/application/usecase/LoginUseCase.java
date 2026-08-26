@@ -91,7 +91,6 @@ public class LoginUseCase {
         UUID familyId = UUID.randomUUID();
         
         RefreshToken refreshToken = RefreshToken.builder()
-                .id(UUID.randomUUID())
                 .token(refreshTokenStr)
                 .userId(user.getId())
                 .familyId(familyId)

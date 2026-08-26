@@ -30,6 +30,11 @@ public class User implements Serializable {
     @Builder.Default
     private Set<Role> roles = Collections.singleton(Role.ROLE_USER);
 
+    // === OAuth2 Provider ===
+    @Builder.Default
+    private String provider = "local"; // "local", "google"
+    private String providerId;        // Google sub ID
+
     // === Email Verification ===
     @Builder.Default
     private boolean isVerified = false;
@@ -94,5 +99,20 @@ public class User implements Serializable {
         this.failedLoginAttempts = 0;
         this.lockedUntil = null;
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    /** Factory method: create user from Google OAuth2 response */
+    public static User fromOAuth2(String email, String displayName, String avatarUrl,
+                                  String provider, String providerId) {
+        return User.builder()
+                .email(new Email(email))
+                .displayName(displayName)
+                .avatarUrl(avatarUrl)
+                .provider(provider)
+                .providerId(providerId)
+                .isVerified(true) // OAuth2 emails are pre-verified by Google
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .build();
     }
 }

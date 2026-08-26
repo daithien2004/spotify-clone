@@ -19,6 +19,8 @@ import com.spotify.auth.application.usecase.RegisterUseCase;
 import com.spotify.auth.application.usecase.RequestEmailVerificationUseCase;
 import com.spotify.auth.application.usecase.ResetPasswordUseCase;
 import com.spotify.auth.application.usecase.VerifyEmailUseCase;
+import com.spotify.auth.application.usecase.GetCurrentUserUseCase;
+import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,9 +41,25 @@ public class AuthController {
     private final VerifyEmailUseCase verifyEmailUseCase;
     private final ForgotPasswordUseCase forgotPasswordUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
+    private final GetCurrentUserUseCase getCurrentUserUseCase;
  
     @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
     private String cookieDomain;
+
+    @org.springframework.web.bind.annotation.GetMapping("/me")
+    public ResponseEntity<GetCurrentUserUseCase.Response> getCurrentUser(HttpServletRequest request) {
+        String userIdStr = request.getHeader("X-User-Id");
+        if (userIdStr == null || userIdStr.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        GetCurrentUserUseCase.Response result = getCurrentUserUseCase.execute(UUID.fromString(userIdStr));
+        if (!result.success()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        return ResponseEntity.ok(result);
+    }
 
     @PostMapping("/register")
     @SecurityRequirements()

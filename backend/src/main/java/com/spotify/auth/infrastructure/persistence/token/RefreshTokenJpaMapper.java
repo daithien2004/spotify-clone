@@ -8,6 +8,5 @@ import org.mapstruct.Mapping;
 public interface RefreshTokenJpaMapper {
     RefreshToken toDomain(RefreshTokenJpaEntity entity);
 
-    @Mapping(target = "_isNew", ignore = true)
     RefreshTokenJpaEntity toJpaEntity(RefreshToken domain);
 }

@@ -1,5 +1,7 @@
 package com.spotify.auth.application.usecase;
 
+import java.util.UUID;
+
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.entity.User;
@@ -45,7 +47,16 @@ class RegisterUseCaseTest {
         RegisterUseCase.Request request = new RegisterUseCase.Request("test@example.com", "Test1234", "User Name", "avatar.url");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(false);
         when(passwordEncoderPort.encode(anyString())).thenReturn("Hashed1234");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            return User.builder()
+                    .id(UUID.randomUUID())
+                    .email(user.getEmail())
+                    .password(user.getPassword())
+                    .displayName(user.getDisplayName())
+                    .avatarUrl(user.getAvatarUrl())
+                    .build();
+        });
         when(tokenPort.generateToken(any(User.class))).thenReturn("fake-jwt-token");
 
         // When

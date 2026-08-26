@@ -30,6 +30,11 @@ export default function LoginPage() {
     );
   };
 
+  const handleGoogleLogin = () => {
+    // Redirect to Gateway OAuth2 endpoint
+    window.location.href = "http://localhost:9000/oauth2/authorization/google";
+  };
+
   return (
     <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 transition-colors">
       <h1 className="text-4xl md:text-5xl font-bold text-center tracking-tighter text-foreground mb-2 leading-tight">
@@ -96,6 +101,7 @@ export default function LoginPage() {
 
       <div className="w-full space-y-3">
         <SocialButton
+          onClick={handleGoogleLogin}
           icon={
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
