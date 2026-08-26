@@ -16,6 +16,7 @@ yarn-error.log*
 # AI Config Files
 .antigravity
 .gemini/
+.claude/settings.local.json
 
 # Build and environment files
 .env

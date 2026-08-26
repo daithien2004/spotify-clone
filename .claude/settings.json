@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "defaultMode": "ask",
+    "allow": [
+      "npm run dev",
+      "npm run build",
+      "npm run lint",
+      "npm run format",
+      "./mvnw spring-boot:run",
+      "./mvnw test",
+      "./mvnw clean package",
+      "docker-compose up",
+      "docker-compose down"
+    ],
+    "deny": [
+      "rm -rf",
+      "sudo rm",
+      "sudo apt",
+      "sudo yum"
+    ]
+  },
+  "hooks": {
+    "postToolUse": {
+      "command": "npm run lint --fix"
+    }
+  }
+}
