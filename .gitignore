@@ -1,4 +1,4 @@
-# Global OS and Editor files
+﻿# Global OS and Editor files
 .DS_Store
 Thumbs.db
 *.swp
@@ -18,12 +18,12 @@ yarn-error.log*
 .gemini/
 .claude/settings.local.json
 
-# Build and environment files
+# Spring Boot local profile (chua secrets that, khong commit)
+backend/src/main/resources/application-local.yml
+
+# Frontend env files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-backend/.env
-backend/.env.*
-!backend/.env.example
