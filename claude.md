@@ -1,8 +1,8 @@
 # Spotify Clone - Claude Code Project Instructions
 
 ## Quick Reference
-
-**BEFORE any task:** Read `.claude/rules/` files (except `HEALTH.md`).
+**BEFORE any task:** Read `.claude/rules/` files (except `HEALTH.md`—see health process if needed).  
+Also review global instructions in `~/.claude/CLAUDE.md` and `RTK.md` for tool-specific guidance.
 
 ---
 
@@ -35,11 +35,16 @@ spotify-clone/
 | `vercel-react-best-practices` | Before implementing frontend |
 
 ## Build Commands
-
+### Frontend
 ```bash
-# Frontend
-cd frontend && npm run dev | build | lint
+cd frontend && npm run dev      # development server
+cd frontend && npm run build    # production build
+cd frontend && npm run lint     # code linting
+```
 
-# Backend
-cd backend && ./mvnw spring-boot:run | test | clean package
+### Backend
+```bash
+cd backend && ./mvnw spring-boot:run  # run application
+cd backend && ./mvnw test             # run tests
+cd backend && ./mvnw clean package    # package artifacts
 ```

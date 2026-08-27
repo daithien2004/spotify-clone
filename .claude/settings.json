@@ -1,27 +1,35 @@
 {
   "permissions": {
-    "defaultMode": "ask",
+    "defaultMode": "default",
     "allow": [
-      "npm run dev",
-      "npm run build",
-      "npm run lint",
-      "npm run format",
-      "./mvnw spring-boot:run",
-      "./mvnw test",
-      "./mvnw clean package",
-      "docker-compose up",
-      "docker-compose down"
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm run format)",
+      "Bash(./mvnw spring-boot:run)",
+      "Bash(./mvnw test)",
+      "Bash(./mvnw clean package)",
+      "Bash(docker-compose up)",
+      "Bash(docker-compose down)"
     ],
     "deny": [
-      "rm -rf",
-      "sudo rm",
-      "sudo apt",
-      "sudo yum"
+      "Bash(rm -rf*)",
+      "Bash(sudo rm*)",
+      "Bash(sudo apt*)",
+      "Bash(sudo yum*)"
     ]
   },
   "hooks": {
-    "postToolUse": {
-      "command": "npm run lint --fix"
-    }
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-lint-fix.sh"
+          }
+        ]
+      }
+    ]
   }
 }
