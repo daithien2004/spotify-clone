@@ -36,7 +36,9 @@ public class CreateTrackUseCaseImpl implements CreateTrackUseCase {
                 .build();
 
         Track saved = trackRepository.save(track);
-        domainEventPublisher.publish(new TrackUploaded(saved.getId(), saved.getTitle(), saved.getArtist()));
+        domainEventPublisher.publish(new TrackUploaded(
+                saved.getId(), saved.getTitle(), saved.getArtist(), saved.getAlbum(),
+                saved.getDurationMs(), saved.getArtworkUrl(), saved.getAudioUrl()));
         return saved;
     }
 

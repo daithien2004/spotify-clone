@@ -45,8 +45,13 @@ class CreateTrackUseCaseImplTest {
 
         ArgumentCaptor<TrackUploaded> eventCaptor = ArgumentCaptor.forClass(TrackUploaded.class);
         verify(domainEventPublisher).publish(eventCaptor.capture());
-        assertEquals(result.getId(), eventCaptor.getValue().getTrackId());
-        assertEquals("The Weeknd", eventCaptor.getValue().getArtist());
+        TrackUploaded event = eventCaptor.getValue();
+        assertEquals(result.getId(), event.getTrackId());
+        assertEquals("The Weeknd", event.getArtist());
+        assertEquals("After Hours", event.getAlbum());
+        assertEquals(200_000L, event.getDurationMs());
+        assertEquals("https://artwork/blinding-lights.png", event.getArtworkUrl());
+        assertEquals(null, event.getAudioUrl());
     }
 
     @Test

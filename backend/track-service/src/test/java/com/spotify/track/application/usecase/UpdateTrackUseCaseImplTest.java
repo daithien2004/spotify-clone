@@ -3,7 +3,9 @@ package com.spotify.track.application.usecase;
 import com.spotify.track.application.dto.CreateTrackRequest;
 import com.spotify.track.application.dto.TrackResponse;
 import com.spotify.track.domain.entity.Track;
+import com.spotify.track.domain.event.TrackUpdated;
 import com.spotify.track.domain.exception.TrackNotFoundException;
+import com.spotify.track.domain.repository.DomainEventPublisher;
 import com.spotify.track.domain.repository.TrackRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +28,8 @@ class UpdateTrackUseCaseImplTest {
 
     @Mock
     private TrackRepository trackRepository;
+    @Mock
+    private DomainEventPublisher domainEventPublisher;
 
     @InjectMocks
     private UpdateTrackUseCaseImpl useCase;
@@ -55,6 +59,14 @@ class UpdateTrackUseCaseImplTest {
         ArgumentCaptor<Track> saved = ArgumentCaptor.forClass(Track.class);
         verify(trackRepository).save(saved.capture());
         assertEquals(id, saved.getValue().getId());
+
+        ArgumentCaptor<TrackUpdated> eventCaptor = ArgumentCaptor.forClass(TrackUpdated.class);
+        verify(domainEventPublisher).publish(eventCaptor.capture());
+        TrackUpdated event = eventCaptor.getValue();
+        assertEquals(id, event.getTrackId());
+        assertEquals("New Title", event.getTitle());
+        assertEquals("New Album", event.getAlbum());
+        assertEquals("https://audio/old.mp3", event.getAudioUrl());
     }
 
     @Test
