@@ -75,6 +75,12 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
 
+        <!-- Kafka events -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- API docs -->
         <dependency>
             <groupId>org.springdoc</groupId>

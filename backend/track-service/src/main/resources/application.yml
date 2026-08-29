@@ -26,6 +26,13 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   jackson:
     default-property-inclusion: NON_NULL
+  # ===== Kafka Configuration =====
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    enabled: ${KAFKA_ENABLED:true}
   minio:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9010}
     access-key: ${MINIO_ROOT_USER:minioadmin}
