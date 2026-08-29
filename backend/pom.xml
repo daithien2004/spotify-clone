@@ -24,6 +24,7 @@
         <module>auth-service</module>
         <module>playlist-service</module>
         <module>track-service</module>
+        <module>search-service</module>
     </modules>
 
     <properties>

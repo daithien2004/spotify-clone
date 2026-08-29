@@ -1,0 +1,33 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: spotify-clone-search-service
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: search-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.spotify.common.event
+    enabled: ${KAFKA_ENABLED:true}
+  jackson:
+    default-property-inclusion: NON_NULL
+
+# Track-service endpoint for the startup bootstrap (spec §6.1)
+search:
+  track-service:
+    base-url: ${TRACK_SERVICE_URL:http://localhost:8085}
+
+# ===== OpenAPI / Swagger UI =====
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
