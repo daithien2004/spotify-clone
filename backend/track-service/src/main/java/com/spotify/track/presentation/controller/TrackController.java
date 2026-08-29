@@ -20,6 +20,7 @@ import com.spotify.track.application.dto.CreateTrackRequest;
 import com.spotify.track.application.dto.TrackResponse;
 import com.spotify.track.application.usecase.CreateTrackUseCase;
 import com.spotify.track.application.usecase.GetTrackByIdsUseCase;
+import com.spotify.track.application.usecase.ListTracksUseCase;
 import com.spotify.track.application.usecase.UpdateTrackUseCase;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class TrackController {
 
     private final CreateTrackUseCase createTrackUseCase;
     private final GetTrackByIdsUseCase getTrackByIdsUseCase;
+    private final ListTracksUseCase listTracksUseCase;
     private final UpdateTrackUseCase updateTrackUseCase;
 
     @PostMapping
@@ -44,9 +46,13 @@ public class TrackController {
         return ResponseEntity.ok(getTrackByIdsUseCase.execute(List.of(trackId)).getFirst());
     }
 
-    /** Batch lookup for playlist joins: {@code GET /api/v1/tracks?ids=a,b,c} preserves requested order. */
+    /** Batch lookup for playlist joins, or full catalog when ids is omitted for bootstrap. */
     @GetMapping
-    public ResponseEntity<List<TrackResponse>> getTracks(@RequestParam("ids") List<UUID> ids) {
+    public ResponseEntity<List<TrackResponse>> getTracks(
+            @RequestParam(value = "ids", required = false) List<UUID> ids) {
+        if (ids == null) {
+            return ResponseEntity.ok(listTracksUseCase.execute());
+        }
         return ResponseEntity.ok(getTrackByIdsUseCase.execute(ids));
     }
 

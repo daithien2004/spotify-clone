@@ -13,4 +13,7 @@ public interface TrackRepository {
 
     /** Returns found tracks for the given ids; row order is not guaranteed. */
     List<Track> findAllByIds(List<UUID> ids);
+
+    /** Returns every track in the catalog for search-service bootstrap. */
+    List<Track> findAll();
 }

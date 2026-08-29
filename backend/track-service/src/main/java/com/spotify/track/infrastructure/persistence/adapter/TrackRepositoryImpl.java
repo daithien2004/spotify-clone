@@ -38,4 +38,11 @@ public class TrackRepositoryImpl implements TrackRepository {
                 .map(mapper::toDomainEntity)
                 .toList();
     }
+
+    @Override
+    public List<Track> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(mapper::toDomainEntity)
+                .toList();
+    }
 }
