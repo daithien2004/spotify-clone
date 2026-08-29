@@ -28,7 +28,7 @@ const apiClient: AxiosInstance = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  withCredentials: true, 
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use(
@@ -86,15 +86,15 @@ apiClient.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-        
+
         processQueue(null);
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
         useAuthStore.getState().clearAuth();
-        
+
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-           window.location.href = "/login";
+          window.location.href = "/login";
         }
         return Promise.reject(refreshError);
       } finally {
@@ -108,34 +108,42 @@ apiClient.interceptors.response.use(
 
 function buildNetworkError(error: Error): ApiError {
   if (error.message === "Network Error") {
-    return { message: "Không có kết nối mạng. Vui lòng kiểm tra lại.", status: 0 };
+    return { message: "No internet connection. Please check your connection.", status: 0 };
   }
   if (error.message.includes("timeout")) {
-    return { message: "Request timeout. Vui lòng thử lại.", status: 408 };
+    return { message: "Request timed out. Please try again.", status: 408 };
   }
   return { message: error.message, status: 0 };
 }
 
-function buildApiError(status: number, data: any): ApiError {
+// Payload lỗi từ server không có schema cố định → narrow cast có cấu trúc.
+type ErrorPayload = {
+  message?: string;
+  code?: ApiError["code"];
+  errors?: ApiError["errors"];
+};
+
+function buildApiError(status: number, data: unknown): ApiError {
+  const body = (data ?? {}) as ErrorPayload;
   const base: ApiError = {
-    message: data?.message || "Đã có lỗi xảy ra.",
+    message: body.message ?? "Something went wrong.",
     status,
-    code: data?.code,
-    errors: data?.errors,
+    code: body.code,
+    errors: body.errors,
   };
 
   const messages: Record<number, string> = {
-    400: "Dữ liệu không hợp lệ.",
-    403: "Bạn không có quyền thực hiện hành động này.",
-    404: "Không tìm thấy tài nguyên.",
-    409: "Xung đột dữ liệu.",
-    422: "Dữ liệu không thể xử lý.",
-    429: "Quá nhiều request. Vui lòng thử lại sau.",
-    500: "Lỗi server. Vui lòng thử lại sau.",
-    503: "Server đang bảo trì.",
+    400: "Invalid data.",
+    403: "You don't have permission to do this.",
+    404: "Resource not found.",
+    409: "Data conflict.",
+    422: "Data could not be processed.",
+    429: "Too many requests. Please try again later.",
+    500: "Server error. Please try again later.",
+    503: "Server is under maintenance.",
   };
 
-  if (!data?.message && messages[status]) {
+  if (!body.message && messages[status]) {
     base.message = messages[status];
   }
 

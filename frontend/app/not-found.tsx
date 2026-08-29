@@ -10,13 +10,13 @@ export default function NotFound() {
       </div>
       <div className="space-y-2">
         <h1 className="text-4xl font-bold tracking-tight">404</h1>
-        <h2 className="text-2xl font-semibold">Trang không tồn tại</h2>
+        <h2 className="text-2xl font-semibold">Page not found</h2>
         <p className="text-muted-foreground max-w-[400px]">
-          Chúng tôi không thể tìm thấy trang bạn đang tìm kiếm. Có thể nội dung đã bị xóa hoặc đường dẫn bị sai.
+          We couldn&apos;t find the page you were looking for. It may have been removed or the link may be wrong.
         </p>
       </div>
       <Button asChild variant="default" size="lg" className="rounded-full bg-foreground text-background hover:scale-105 transition-transform px-8">
-        <Link href="/">Quay về trang chủ</Link>
+        <Link href="/">Back to home</Link>
       </Button>
     </div>
   );

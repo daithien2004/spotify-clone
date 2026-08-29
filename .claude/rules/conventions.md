@@ -37,9 +37,11 @@ Bao gồm các Standard Rules dành cho AI khi generate Code. Bắt buộc đọ
 - **Folder structure:** `app/(features)/{feature-name}/`. Never use Pages Router.
 - **Component naming:** PascalCase (`TrackCard.tsx`). Hooks: camelCase (`useTrack.ts`).
 - **TypeScript:** Strict mode required. No `any`. Prefer `interface` for object shapes, `type` for unions/primitives.
+- **Styling — token-only:** Dùng design tokens từ `frontend/tokens.css` (+ `@theme inline` trong `app/globals.css`) → utilities `bg-*/text-*/border-*`. Cấm class arbitrary-hex (`text-[#xxxxxx]`) khi token đã có cùng giá trị — enforced bởi PreToolUse hook `block-hardcoded-hex.sh`. Chi tiết trong skill `frontend-conventions` (`references/tokens.md`).
+- **Responsive — container queries:** Grid/list bên trong sidebar co giãn dùng `@container` + `@lg:`/`@2xl:` (không phải viewport `lg:`). Sidebar resize: clamp `MainLayout.tsx`. Chi tiết `frontend-conventions/references/layout.md`.
 - **State Management:**
   - Server state: **React Query** (`useQuery`, `useMutation`). NEVER use `useEffect` to fetch data.
-  - Global UI state: **Zustand** (`usePlayerStore.ts`).
+  - Global UI state: **Zustand** (`usePlayerStore.ts`), **granular selectors** `usePlayerStore((s) => s.x)` — cấm destructure cả store. Chi tiết `frontend-conventions/references/state.md`.
 - **Server vs Client Components:**
   - Default to Server Components. Fetch data directly with `async/await` in Server Components.
   - Only add `'use client'` when needed: `useState`/`useEffect`, event handlers, React Query hooks.
@@ -47,6 +49,7 @@ Bao gồm các Standard Rules dành cho AI khi generate Code. Bắt buộc đọ
 - **Performance:** Use `next/image` for all images. Use `next/dynamic` for heavy Client Components.
 - **Query Keys:** Array format `['tracks', trackId]`, centralized in `queryKeys.ts`.
 - **Services layer:** Functions in `services/` must throw user-friendly errors that React Query can catch and display.
+- **Testing:** Vitest + React Testing Library (`npm run test`). Test đặt cạnh code (`__tests__/`). Setup: `vitest.config.mts` + `vitest.setup.ts` (polyfill ResizeObserver + mock next/image).
 
 ## 4. Git
 - **Branch:** `feature/{ticket-id}-{short-description}`

@@ -1,43 +1,56 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DAILY_MIXES } from "@/lib/mockData";
+import { HOME_SECTIONS } from "@/lib/musicData";
+import { queryKeys } from "@/lib/queryKeys";
 import { SectionHeader } from "./SectionHeader";
 import { MusicCard } from "./MusicCard";
 
-export function HomeFeed() {
-  // Masterclass: Using prefetched data from the server
-  const { data: mixes } = useQuery({
-    queryKey: ["daily-mixes"],
-    queryFn: async () => DAILY_MIXES, // In a real app, this is an API call
-    initialData: DAILY_MIXES, // Fallback for safety
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+export default function HomeFeed() {
+  // Data đã được prefetch trên server (app/(main)/page.tsx).
+  const { data: sections } = useQuery({
+    queryKey: queryKeys.home.sections(),
+    queryFn: async () => HOME_SECTIONS,
+    initialData: HOME_SECTIONS, // Fallback an toàn nếu hydration trễ.
   });
 
   return (
-    <ScrollArea className="h-full bg-gradient-to-b from-muted-foreground/10 to-background rounded-xl overflow-hidden shadow-2xl transition-colors">
-      <div className="p-6 space-y-4">
-        <div className="flex gap-2 sticky top-0 bg-transparent z-10 pt-2">
-          <Badge className="bg-foreground text-background hover:bg-foreground/90 px-4 py-1.5 rounded-full cursor-pointer text-sm font-bold transition-all">Tất cả</Badge>
-        </div>
+    <ScrollArea className="@container h-full overflow-hidden rounded-[4px] bg-bg-secondary shadow-2xl ring-1 ring-inset ring-border-feed">
+      <div className="space-y-8 p-6">
+        <h1 className="text-[2.75rem] font-bold leading-tight text-text-primary">
+          {greeting()}
+        </h1>
 
-        <section>
-          <SectionHeader 
-            title="_thienn10_" 
-            subtitle="Dành Cho" 
-            onShowAll={() => console.log("Show all daily mixes")} 
-          />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {mixes?.map((mix, index) => (
-              <MusicCard 
-                key={mix.id} 
-                {...mix} 
-                priority={index < 4}
-              />
-            ))}
-          </div>
-        </section>
+        {sections?.map((section) => (
+          <section key={section.title} className="space-y-4">
+            <SectionHeader
+              title={section.title}
+              showAllLabel="SEE ALL"
+              onShowAll={() => console.log(`Show all: ${section.title}`)}
+            />
+            <div className="grid grid-cols-2 gap-4 @lg:grid-cols-3 @2xl:grid-cols-4">
+              {section.items.map((item, index) => (
+                <MusicCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  description={item.description}
+                  imageUrl={item.imageUrl}
+                  priority={index < 2}
+                  variant={item.variant}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </ScrollArea>
   );

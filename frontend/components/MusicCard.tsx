@@ -13,6 +13,8 @@ interface MusicCardProps {
   imageUrl: string;
   type?: string;
   className?: string;
+  /** "artist" → bo tròn giống avatar nghệ sĩ (Nghệ sĩ phổ biến) */
+  variant?: "track" | "artist";
 }
 
 export const MusicCard = memo(function MusicCard({
@@ -21,15 +23,16 @@ export const MusicCard = memo(function MusicCard({
   description,
   imageUrl,
   type,
+  variant = "track",
   className,
   priority = false,
 }: MusicCardProps & { id: string; priority?: boolean }) {
   const [hasError, setHasError] = React.useState(false);
-  
-  // Logic: Use individual selectors and wrap handlers in useCallback for peak stability
+
   const setCurrentTrack = usePlayerStore((state) => state.setCurrentTrack);
   const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
 
+  const isArtist = variant === "artist";
   const ariaLabel = `Phát ${title}${type ? ` (${type})` : ''}`;
   const fallbackUrl =
     'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
@@ -59,10 +62,15 @@ export const MusicCard = memo(function MusicCard({
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      className={`group relative bg-card/40 hover:bg-muted/80 border-none transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-lg p-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-green-500 ${className}`}
+      className={`group relative bg-bg-secondary/40 hover:bg-bg-tertiary/80 border-none transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-lg p-3 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/50 ${className}`}
     >
       <CardContent className="p-0 space-y-4">
-        <div className="relative aspect-square overflow-hidden rounded-md shadow-2xl bg-muted">
+        {/* Ảnh bìa — bo tròn khi là nghệ sĩ (giống avatar khoanh tròn ở Figma) */}
+        <div
+          className={`relative aspect-square overflow-hidden shadow-2xl bg-bg-secondary ${
+            isArtist ? "rounded-full mx-auto max-w-[200px]" : "rounded-[var(--radius-image-card)]"
+          }`}
+        >
           <Image
             src={hasError ? fallbackUrl : imageUrl}
             alt={`Ảnh bìa cho ${title}`}
@@ -82,7 +90,7 @@ export const MusicCard = memo(function MusicCard({
               title={ariaLabel}
               aria-label={ariaLabel}
               tabIndex={-1} // Handled by Card
-              className="h-12 w-12 rounded-full bg-green-500 text-black hover:bg-green-400 shadow-xl hover:scale-105 transition-transform active:scale-95"
+              className="h-12 w-12 rounded-full bg-accent-primary text-accent-primary-foreground hover:bg-accent-primary/90 shadow-xl hover:scale-105 transition-transform active:scale-95"
             >
               <Play className="h-6 w-6 fill-current" />
             </Button>

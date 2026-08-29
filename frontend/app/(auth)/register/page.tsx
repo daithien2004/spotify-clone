@@ -24,8 +24,8 @@ export default function RegisterPage() {
       { displayName, email, password },
       {
         onError: (error) => {
-          toast.error("Đăng ký thất bại", {
-            description: error.message || "Đã xảy ra lỗi. Vui lòng thử lại.",
+          toast.error("Sign up failed", {
+            description: error.message || "Something went wrong. Please try again.",
           });
         },
       }
@@ -35,19 +35,19 @@ export default function RegisterPage() {
   return (
     <Card className="border-none shadow-none bg-transparent transition-colors max-w-[450px] mx-auto">
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-3xl font-bold tracking-tight text-foreground">Đăng ký</CardTitle>
+        <CardTitle className="text-3xl font-bold tracking-tight text-foreground">Sign up</CardTitle>
         <CardDescription className="text-muted-foreground">
-          Tạo tài khoản để bắt đầu trải nghiệm âm nhạc
+          Create an account to start listening to music
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="displayName" className="text-foreground font-bold">Họ và tên</Label>
+            <Label htmlFor="displayName" className="text-foreground font-bold">Full name</Label>
             <Input
               id="displayName"
               type="text"
-              placeholder="Nguyễn Văn A"
+              placeholder="Your name"
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -67,11 +67,11 @@ export default function RegisterPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password" className="text-foreground font-bold">Mật khẩu</Label>
+            <Label htmlFor="password" className="text-foreground font-bold">Password</Label>
             <Input
               id="password"
               type="password"
-              placeholder="Tối thiểu 8 ký tự"
+              placeholder="At least 8 characters"
               required
               minLength={8}
               value={password}
@@ -89,9 +89,9 @@ export default function RegisterPage() {
             {registerMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Đang tạo tài khoản...</span>
+                <span>Creating your account...</span>
               </div>
-            ) : "Đăng ký"}
+            ) : "Sign up"}
           </Button>
 
           <div className="w-full space-y-3">
@@ -104,17 +104,17 @@ export default function RegisterPage() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
               }
-              text="Tiếp tục bằng Google"
+              text="Continue with Google"
             />
           </div>
 
           <div className="text-center text-sm text-muted-foreground pt-4">
-            Bạn đã có tài khoản?{" "}
+            Already have an account?{" "}
             <Link
               href="/login"
               className="font-medium text-foreground hover:text-spotify-green hover:underline underline-offset-4"
             >
-              Đăng nhập tại đây
+              Log in here
             </Link>
           </div>
         </CardFooter>

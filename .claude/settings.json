@@ -1,11 +1,11 @@
 {
   "permissions": {
-    "defaultMode": "default",
     "allow": [
       "Bash(npm run dev)",
       "Bash(npm run build)",
       "Bash(npm run lint)",
       "Bash(npm run format)",
+      "Bash(npm run test)",
       "Bash(./mvnw spring-boot:run)",
       "Bash(./mvnw test)",
       "Bash(./mvnw clean package)",
@@ -13,23 +13,48 @@
       "Bash(docker-compose down)"
     ],
     "deny": [
-      "Bash(rm -rf*)",
       "Bash(sudo rm*)",
       "Bash(sudo apt*)",
       "Bash(sudo yum*)"
-    ]
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-bash-file-edit.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-hardcoded-hex.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/post-lint-fix.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/post-lint-fix.sh\""
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "a11y-audit@claude-code-skills": true
   }
 }

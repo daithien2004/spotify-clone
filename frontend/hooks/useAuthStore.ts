@@ -22,13 +22,12 @@ export const useAuthStore = create<AuthState>()(
       user: null,
 
       setAuth: (user) => {
-        // Token is now handled by HttpOnly cookie from server
+        // HttpOnly cookie (server) đã xử lý token — store chỉ giữ user.
         set({ user });
       },
 
       clearAuth: () => {
-        // Cookie clearing is handled by server-side logout, 
-        // but we can also clear client-side user state instantly.
+        // Server-side logout xóa cookie; client chỉ cần reset state ngay.
         set({ user: null });
       },
 
@@ -41,7 +40,6 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        // No accessToken persisted in localStorage anymore!
       }),
     }
   )

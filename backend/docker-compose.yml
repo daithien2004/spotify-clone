@@ -1,17 +1,32 @@
 version: '3.8'
 
 services:
-  db:
+  # Database-per-service: mỗi service sở hữu DB riêng (auth_db, playlist_db).
+  # Mirrors the application.yml datasource URL của từng service.
+  auth-db:
     image: postgres:16-alpine
-    container_name: spotify_postgres
+    container_name: spotify_postgres_auth
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: spotify
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: auth_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - auth_postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  playlist-db:
+    image: postgres:16-alpine
+    container_name: spotify_postgres_playlist
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: playlist_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - playlist_postgres_data:/var/lib/postgresql/data
     restart: always
 
   redis:
@@ -54,5 +69,6 @@ services:
     restart: always
 
 volumes:
-  postgres_data:
+  auth_postgres_data:
+  playlist_postgres_data:
   kafka_data:

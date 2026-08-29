@@ -4,7 +4,10 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-  const isPublicPage = request.nextUrl.pathname === '/' || isAuthPage;
+  // UI demo routes — cho phép xem màn Playlist không cần đăng nhập.
+  const isDemoPage =
+    request.nextUrl.pathname.startsWith('/playlist');
+  const isPublicPage = request.nextUrl.pathname === '/' || isAuthPage || isDemoPage;
 
   // If user is not logged in and tries to access private routes
   if (!token && !isPublicPage) {
@@ -26,8 +29,10 @@ export const config = {
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
+     * - figma (local assets under public/figma)
      * - favicon.ico, sitemap.xml, robots.txt (static files)
+     * - any path ending in a known static file extension
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!api|_next/static|_next/image|figma|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:png|jpe?g|svg|gif|webp|avif|ico|woff2?|css|js|map|txt)$).*)',
   ],
 };

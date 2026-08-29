@@ -1,0 +1,150 @@
+:root,
+.dark {
+  /* ---------- Primitive palette (raw Figma values) ---------- */
+  --smoke-0: #000000;
+  /* canvas root */
+  --smoke-1: #111212;
+  /* main bg / right panel */
+  --smoke-2: #121212;
+  /* library & sidebar */
+  --smoke-3: #131313;
+  /* feed bg */
+  --smoke-4: #1e1e1e;
+  /* elevated cards */
+  --smoke-5: #101111;
+  /* cookie chip */
+  --smoke-6: #111111;
+  /* language pill */
+
+  /* ---------- Semantic aliases ---------- */
+  --bg-primary: var(--smoke-1);
+  --bg-secondary: var(--smoke-3);
+  --bg-tertiary: var(--smoke-4);
+  --bg-elevated: var(--smoke-2);
+  --bg-deep: var(--smoke-5);
+  --bg-muted: var(--smoke-6);
+
+  --surface-primary: #fefeff;
+  /* white surface #1 (buttons) */
+  --surface-secondary: #feffff;
+  /* white surface #2 (promo pill) */
+  --surface-foreground: #242424;
+
+  --text-primary: #dfdfdf;
+  /* section titles on dark */
+  --text-secondary: #e3e3e3;
+  /* secondary titles */
+  --text-strong: #e4e4e4;
+  /* right-panel headline */
+  --text-soft: #c2c2c2;
+  /* card subtitles */
+  --text-muted: #868686;
+  /* faint card text */
+  --text-hint: #8d8d8d;
+  /* disabled / secondary */
+
+  --text-on-white: #242424;
+  /* primary text on white pills */
+  --text-on-white-sub: #3d3d3d;
+  /* secondary text on white */
+  --text-on-white-soft: #414141;
+  /* tertiary text on white */
+
+  --accent-primary: #1dd760;
+  /* Spotify green */
+  --accent-primary-foreground: #073417;
+  /* text inside green pill */
+  --accent-secondary: #e2d9ee;
+  /* lavender (promo desc) */
+  --accent-tertiary: #edd9eb;
+  /* blush (promo title) */
+  --accent-hover: #65d36e;
+  /* play button on hover (Figma) */
+
+  --border-feed: #020202;
+  /* 3px feed outline (Figma) */
+
+  /* ---------- Scrollbar (unified — Spotify-style thumb) ---------- */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  /* resting thumb */
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+  /* hover / dragging */
+
+  /* ---------- Genre tiles (Search / Browse all — Figma) ---------- */
+  --genre-pop: #af2896;
+  --genre-hiphop: #f037a5;
+  --genre-afro: #ba5d07;
+  --genre-rnb: #876aa7;
+  --genre-party: #179f09;
+  --genre-workout: #e8115b;
+  --genre-chill: #27856a;
+  --genre-soul: #8d67ab;
+  --genre-mood: #1e3264;
+  --genre-podcasts: #477d95;
+  --genre-made-for-you: #9cf0e1;
+  --genre-charts: #4793eb;
+  --genre-discover: #509bf5;
+  --genre-concerts: #604ec1;
+  --genre-frequency: #4077ca;
+  --genre-christian: #e5f859;
+  --genre-equal: #3333a3;
+  --genre-alternative: #9747ff;
+  --genre-rewind: #434349;
+  --genre-new-releases: #ddf628;
+
+  /* ---------- Typography ---------- */
+  --font-ui: var(--font-inter,
+      'Inter',
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      sans-serif);
+
+  --text-xs: 0.75rem;
+  /* 12px */
+  --text-sm: 0.875rem;
+  /* 14px */
+  --text-base: 1rem;
+  /* 16px */
+  --text-lg: 1.125rem;
+  /* 18px */
+  --text-xl: 1.25rem;
+  /* 20px */
+  --text-2xl: 1.5rem;
+  /* 24px */
+  --text-3xl: 1.75rem;
+  /* 28px — section headers (Figma) */
+  --text-4xl: 2.25rem;
+  /* 36px */
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ---------- Spacing (4px-based scale) ---------- */
+  --spacing-0: 0px;
+  --spacing-0-25: 1px;
+  --spacing-0-5: 2px;
+  --spacing-1: 4px;
+  --spacing-1-5: 6px;
+  --spacing-2: 8px;
+  --spacing-2-5: 10px;
+  --spacing-3: 12px;
+  --spacing-3-5: 14px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-7: 28px;
+  --spacing-8: 32px;
+  --spacing-9: 36px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  /* avatar containers */
+  --spacing-14: 56px;
+  /* dropdown width */
+  --spacing-24: 96px;
+}

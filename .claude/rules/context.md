@@ -15,14 +15,17 @@
 - `infrastructure/`: JPA Entities, Repository Implementations, Kafka producers/consumers, External API clients — implements domain interfaces
 - `presentation/`: Controllers, Request/Response DTOs, Exception Handlers — calls Use Cases only
 
-## Microservices
-| Service | Responsibility |
-|---|---|
-| `auth-service` | Authentication, JWT, OAuth2 |
-| `user-service` | User profiles, follows |
-| `track-service` | Upload, streaming, metadata |
-| `playlist-service` | Playlist CRUD, track ordering |
-| `search-service` | Elasticsearch, full-text search |
+## Microservices (monorepo — Maven multi-module)
+Repos vật lý: `backend/pom.xml` (parent) → `common-lib`, `auth-service`, `playlist-service`. Gateway (`gateway/`, port 9000) route tới từng service (auth 8081, playlist 8082). Database-per-service: `auth_db` / `playlist_db` trong `backend/docker-compose.yml`.
+
+| Service | Status | Responsibility |
+|---|---|---|
+| `auth-service` | ✅ `backend/auth-service/` | Authentication, JWT, OAuth2, TOTP 2FA |
+| `playlist-service` | ✅ `backend/playlist-service/` (port **8084**) | Playlist track ordering (LexoRank) |
+| `common-lib` | ✅ `backend/common-lib/` | ApiResponse envelope, GatewayHeaderFilter, ServiceSecurityConfig |
+| `user-service` | 🔴 Backlog | User profiles, follows |
+| `track-service` | 🔴 Backlog | Upload, streaming, metadata |
+| `search-service` | 🔴 Backlog | Elasticsearch, full-text search |
 
 ## Technical Decisions (Đã chốt — không thay đổi)
 - **Use Case per feature:** Không dùng god-class Service.

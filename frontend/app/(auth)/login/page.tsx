@@ -10,6 +10,8 @@ import { Loader2 } from "lucide-react";
 import { SocialButton } from "@/components/auth/SocialButton";
 import { toast } from "sonner";
 
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:9000";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,8 +24,8 @@ export default function LoginPage() {
       { email, password },
       {
         onError: (error) => {
-          toast.error("Đăng nhập thất bại", {
-            description: error.message || "Vui lòng kiểm tra lại thông tin.",
+          toast.error("Log in failed", {
+            description: error.message || "Please check your credentials and try again.",
           });
         },
       }
@@ -31,26 +33,26 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to Gateway OAuth2 endpoint
-    window.location.href = "http://localhost:9000/oauth2/authorization/google";
+    // Redirect to Gateway OAuth2 (Google) — toàn trang để nhận HttpOnly session cookie.
+    window.location.href = `${GATEWAY_URL}/oauth2/authorization/google`;
   };
 
   return (
     <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 transition-colors">
       <h1 className="text-4xl md:text-5xl font-bold text-center tracking-tighter text-foreground mb-2 leading-tight">
-        Chào mừng bạn quay trở lại
+        Welcome back
       </h1>
 
       <form onSubmit={handleSubmit} className="w-full space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-bold text-foreground">
-              Email hoặc tên người dùng
+              Email or username
             </Label>
             <Input
               id="email"
               type="text"
-              placeholder="Email hoặc tên người dùng"
+              placeholder="Email or username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -61,13 +63,13 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password" className="text-sm font-bold text-foreground">
-                Mật khẩu
+                Password
               </Label>
             </div>
             <Input
               id="password"
               type="password"
-              placeholder="Mật khẩu"
+              placeholder="Password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -84,9 +86,9 @@ export default function LoginPage() {
           {loginMutation.isPending ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Đang đăng nhập...</span>
+              <span>Logging in...</span>
             </div>
-          ) : "Tiếp tục"}
+          ) : "Log in"}
         </Button>
 
         <div className="text-center">
@@ -94,7 +96,7 @@ export default function LoginPage() {
             href="/forgot-password"
             className="text-sm text-foreground hover:text-spotify-green underline underline-offset-4 decoration-border hover:decoration-spotify-green transition-colors"
           >
-            Quên mật khẩu?
+            Forgot your password?
           </Link>
         </div>
       </form>
@@ -110,18 +112,18 @@ export default function LoginPage() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
           }
-          text="Tiếp tục bằng Google"
+          text="Continue with Google"
         />
       </div>
 
       <div className="w-full border-muted text-center">
         <p className="text-muted-foreground text-base">
-          Bạn không có tài khoản?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/register"
             className="text-foreground hover:text-spotify-green font-bold underline underline-offset-4 decoration-border hover:decoration-spotify-green transition-colors"
           >
-            Đăng ký Spotify.
+            Sign up for Spotify.
           </Link>
         </p>
       </div>

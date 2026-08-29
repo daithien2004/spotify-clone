@@ -11,6 +11,8 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledby,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -22,6 +24,12 @@ function Slider({
           : [min, max],
     [value, defaultValue, min, max]
   )
+  // Radix gán role="slider" cho từng Thumb — tên accessible phải nằm trên Thumb,
+  // không phải Root (aria-label truyền cho Root không lan xuống Thumb).
+  const thumbAccessible = {
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledby,
+  }
 
   return (
     <SliderPrimitive.Root
@@ -49,6 +57,7 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          {...thumbAccessible}
           className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

@@ -1,13 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-ui);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -38,6 +37,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -45,86 +46,164 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ---- Spotify design tokens (tokens.css) → Tailwind utilities ---- */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-muted: var(--bg-muted);
+
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-foreground: var(--surface-foreground);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-strong: var(--text-strong);
+  --color-text-soft: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-text-hint: var(--text-hint);
+  --color-text-on-white: var(--text-on-white);
+  --color-text-on-white-sub: var(--text-on-white-sub);
+  --color-text-on-white-soft: var(--text-on-white-soft);
+
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-foreground: var(--accent-primary-foreground);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-tertiary: var(--accent-tertiary);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-border-feed: var(--border-feed);
+
+  /* Unified scrollbar (Native scrollbars + Radix thumb) -> bg-scrollbar-thumb */
+  --color-scrollbar-thumb: var(--scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+
+  /* Genre tiles (Search Browse all) → bg-genre-pop, from-genre-pop… */
+  --color-genre-pop: var(--genre-pop);
+  --color-genre-hiphop: var(--genre-hiphop);
+  --color-genre-afro: var(--genre-afro);
+  --color-genre-rnb: var(--genre-rnb);
+  --color-genre-party: var(--genre-party);
+  --color-genre-workout: var(--genre-workout);
+  --color-genre-chill: var(--genre-chill);
+  --color-genre-soul: var(--genre-soul);
+  --color-genre-mood: var(--genre-mood);
+  --color-genre-podcasts: var(--genre-podcasts);
+  --color-genre-made-for-you: var(--genre-made-for-you);
+  --color-genre-charts: var(--genre-charts);
+  --color-genre-discover: var(--genre-discover);
+  --color-genre-concerts: var(--genre-concerts);
+  --color-genre-frequency: var(--genre-frequency);
+  --color-genre-christian: var(--genre-christian);
+  --color-genre-equal: var(--genre-equal);
+  --color-genre-alternative: var(--genre-alternative);
+  --color-genre-rewind: var(--genre-rewind);
+  --color-genre-new-releases: var(--genre-new-releases);
+
+  /* Radius tokens từ Figma (literal — tránh vòng lặp var) */
+  --radius-image-card: 0.5rem;
+  --radius-button-large: 999px;
+  --radius-button-medium: 999px;
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
+/* Figma dark palette (app luôn chạy dark) */
+:root,
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0 0 0);
+  /* canvas #000000 */
+  --foreground: oklch(0.89 0.005 0);
+  /* #DFDFDF */
+  --card: oklch(0.09 0.005 0);
+  /* #111212 */
+  --card-foreground: oklch(0.89 0.005 0);
+  /* #DFDFDF */
+  --popover: oklch(0.09 0.005 0);
+  --popover-foreground: oklch(0.89 0.005 0);
+  --primary: oklch(0.99 0.001 0);
+  /* #FEFEFF white pill */
+  --primary-foreground: oklch(0.18 0 0);
+  /* #242424 */
+  --secondary: oklch(0.1 0.005 0);
+  /* #131313 */
+  --secondary-foreground: oklch(0.89 0.005 0);
+  --muted: oklch(0.14 0.004 0);
+  /* #1E1E1E */
+  --muted-foreground: oklch(0.59 0.008 0);
+  /* #8D8D8D */
+  --accent: oklch(0.79 0.16 152);
+  /* #1DD760 */
+  --accent-foreground: oklch(0.2 0.05 156);
+  /* #073417 */
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(0.95 0 0 / 8%);
+  --input: oklch(0.95 0 0 / 15%);
+  --ring: oklch(0.79 0.16 152);
+  /* #1DD760 */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.09 0.005 0);
+  /* #121212 */
+  --sidebar-foreground: oklch(0.89 0.005 0);
+  --sidebar-primary: oklch(0.99 0.001 0);
+  --sidebar-primary-foreground: oklch(0.18 0 0);
+  --sidebar-accent: oklch(0.14 0.004 0);
+  --sidebar-accent-foreground: oklch(0.89 0.005 0);
+  --sidebar-border: oklch(0.95 0 0 / 8%);
+  --sidebar-ring: oklch(0.79 0.16 152);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
+  }
+
+  /* ---- Unified scrollbar (Spotify-style) — phủ toàn bộ scroll native ---- */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
@@ -132,20 +211,29 @@
   .glass {
     @apply bg-background/60 backdrop-blur-md border border-white/10;
   }
-  
+
   .glass-dark {
     @apply bg-black/40 backdrop-blur-xl border border-white/5 shadow-2xl;
   }
 
   .spotify-green {
-    @apply text-[#1DB954];
+    @apply text-accent-primary;
   }
 
   .bg-spotify-green {
-    @apply bg-[#1DB954];
+    @apply bg-accent-primary;
   }
 
   .hover-spotify-green {
-    @apply hover:text-[#1DB954] transition-colors;
+    @apply hover:text-accent-primary transition-colors;
+  }
+}
+
+/* Ẩn scrollbar nhưng vẫn cuộn được bằng keyboard/wheel — popover, combobox… */
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }

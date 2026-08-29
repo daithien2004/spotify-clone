@@ -1,103 +1,133 @@
 "use client";
 
-import { Search, Home as HomeIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useLogout } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
+import { SearchBar } from "@/components/search/SearchBar";
 
+// Trạng thái "đã hydrate" — true trên client, false khi SSR.
+// Tránh setState-synchronously-in-effect (cascading renders).
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+export function useIsMounted() {
+  return useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+}
+
+/** Header (Figma 113:707): chevron + SearchBar + avatar dropdown (menu Figma 325:7537). */
 export function TopNav() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const isAuth = useAuthStore((state) => state.isAuthenticated());
   const logout = useLogout();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const avatar = user?.avatarUrl ? (
+    <Image
+      src={user.avatarUrl}
+      alt="Profile"
+      width={32}
+      height={32}
+      className="h-full w-full object-cover"
+    />
+  ) : (
+    <span className="text-sm font-bold uppercase">
+      {(user?.displayName || "U").charAt(0)}
+    </span>
+  );
 
   return (
-    <nav className="sticky top-0 z-10 flex h-16 items-center justify-between bg-background/80 px-6 backdrop-blur-md">
-      {/* Left / Center Section */}
-      <div className="flex items-center gap-2 lg:gap-8 flex-1">
-        <div className="flex items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-foreground cursor-pointer" aria-label="Trang chủ">
-            <HomeIcon className="h-6 w-6" />
-          </div>
-          <div className="relative group w-[300px] lg:w-[400px]">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground" />
-            <Input
-              placeholder="Bạn muốn phát nội dung gì?"
-              aria-label="Tìm kiếm nội dung"
-              className="h-12 w-full rounded-full border-none bg-muted pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/20"
-            />
-          </div>
-        </div>
+    <nav className="sticky top-0 z-10 grid h-[76px] grid-cols-[1fr_auto_1fr] items-center gap-6 px-6">
+      {/* Left — back/forward chevrons */}
+      <div className="flex items-center gap-2 justify-self-start shrink-0">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-text-soft hover:text-text-primary transition-colors"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => router.forward()}
+          aria-label="Forward"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-text-soft hover:text-text-primary transition-colors"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* Right Section: Auth */}
-      <div className="flex items-center gap-4">
+      {/* Center — search (dropdown autocomplete hiện ngay dưới) */}
+      <SearchBar />
+
+      {/* Right — avatar dropdown */}
+      <div className="flex items-center gap-4 justify-self-end shrink-0">
         {mounted && isAuth ? (
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-bold">{user?.displayName}</span>
-              <span className="text-xs text-muted-foreground">{user?.email}</span>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div 
-                  className="h-10 w-10 md:h-12 md:w-12 rounded-full overflow-hidden border-2 border-border cursor-pointer bg-card flex items-center justify-center hover:scale-105 transition-transform"
-                >
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="font-bold text-lg uppercase">{user?.displayName?.charAt(0) || "U"}</span>
-                  )}
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-2xl rounded-xl p-2 font-medium">
-                <DropdownMenuLabel className="text-muted-foreground pb-2 px-3 text-xs uppercase tracking-wider">Tài khoản</DropdownMenuLabel>
-                <DropdownMenuItem className="cursor-pointer py-3 px-3 hover:bg-white/10 rounded-sm transition-colors text-foreground">
-                  Hồ sơ
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-3 px-3 hover:bg-white/10 rounded-sm transition-colors text-foreground">
-                  Cài đặt
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border/50 my-1" />
-                <DropdownMenuItem 
-                  className="cursor-pointer py-3 px-3 hover:bg-white/10 rounded-sm transition-colors text-foreground focus:bg-white/10"
-                  onClick={logout}
-                >
-                  Đăng xuất
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Account"
+                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-bg-tertiary/80 text-text-soft transition-transform hover:scale-105"
+              >
+                {avatar}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-60 rounded-xl bg-bg-tertiary/95 p-1.5 shadow-2xl backdrop-blur-md"
+            >
+              <DropdownMenuLabel className="flex flex-col px-3 py-2">
+                <span className="text-sm font-bold text-text-primary">
+                  {user?.displayName}
+                </span>
+                <span className="text-xs text-text-muted">{user?.email}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-1 bg-border/50" />
+              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                Account
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                Private session
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1 bg-border/50" />
+              <DropdownMenuItem
+                className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10 focus:bg-white/10"
+                onClick={logout}
+              >
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : mounted ? (
-          <>
-            <Link href="/register">
-              <span className="text-muted-foreground hover:text-foreground font-bold hover:scale-105 transition-all cursor-pointer">
-                Đăng ký
-              </span>
-            </Link>
-            <Link href="/login">
-              <Button className="rounded-full bg-foreground text-background font-bold px-8 py-6 hover:scale-105 transition-transform">
-                Đăng nhập
-              </Button>
-            </Link>
-          </>
+          <Link
+            href="/login"
+            className="rounded-full bg-white px-8 py-3 text-sm font-bold text-black transition-transform hover:scale-105"
+          >
+            Log in
+          </Link>
         ) : (
-          <div className="w-48 h-12"></div> // Placeholder layout shift prevention
+          <div className="w-28 h-9" /> // Placeholder layout shift prevention
         )}
       </div>
     </nav>

@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Toaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter = typeface trong Figma design (400-800). Load trước để `--font-inter`
+// được tokens.css dùng làm font-sans mặc định.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -22,7 +26,7 @@ export const metadata: Metadata = {
   },
   description: "A premium Spotify clone built with Next.js and Spring Boot. Clean Architecture & High Performance.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.png",
   },
   openGraph: {
     title: "Spotify Clone - Premium Music",
@@ -54,8 +58,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="en"
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

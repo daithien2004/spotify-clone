@@ -14,8 +14,7 @@ interface PlayerState {
   currentTrack: Track | null;
   volume: number;
   progress: number;
-  
-  // Actions
+
   setIsPlaying: (isPlaying: boolean) => void;
   setCurrentTrack: (track: Track | null) => void;
   setVolume: (volume: number) => void;

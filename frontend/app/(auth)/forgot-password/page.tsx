@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,23 +13,23 @@ export default function ForgotPasswordPage() {
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
         >
           <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>Quay lại đăng nhập</span>
+          <span>Back to log in</span>
         </Link>
       </div>
 
       <div className="space-y-2 text-center">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-foreground">
-          Khôi phục mật khẩu
+          Reset your password
         </h1>
         <p className="text-muted-foreground">
-          Nhập email của bạn để nhận hướng dẫn khôi phục mật khẩu.
+          Enter your email and we&apos;ll send you instructions to reset your password.
         </p>
       </div>
 
       <form className="w-full space-y-6">
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-bold text-foreground">
-            Địa chỉ email
+            Email address
           </Label>
           <Input
             id="email"
@@ -46,7 +44,7 @@ export default function ForgotPasswordPage() {
           className="w-full bg-spotify-green hover:opacity-90 text-black font-bold h-12 rounded-full transition-transform active:scale-[0.98]"
           type="submit"
         >
-          Gửi yêu cầu
+          Send request
         </Button>
       </form>
     </div>

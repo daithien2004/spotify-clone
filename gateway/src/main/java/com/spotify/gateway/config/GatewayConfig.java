@@ -14,16 +14,16 @@ public class GatewayConfig {
         return builder.routes()
                 // OAuth2 endpoints - bypass JWT filter entirely
                 .route("auth-oauth2", r -> r.path("/oauth2/**", "/login/oauth2/**")
-                        .uri("http://localhost:8080"))
+                        .uri("http://localhost:8081"))
                 .route("auth-service-login", r -> r.path("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh")
-                        .uri("http://localhost:8080")) // Forward to Auth Service without JWT check
+                        .uri("http://localhost:8081")) // Forward to Auth Service without JWT check
                 .route("auth-service-protected", r -> r.path("/api/v1/auth/**")
                         .and().not(p -> p.path("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh"))
                         .filters(f -> f.filter(authFilter))
-                        .uri("http://localhost:8080"))
+                        .uri("http://localhost:8081"))
                 .route("playlist-service", r -> r.path("/api/v1/playlists/**")
                         .filters(f -> f.filter(authFilter))
-                        .uri("http://localhost:8080")) // Currently in the same monolith but routeable
+                        .uri("http://localhost:8084"))
                 .build();
     }
 }

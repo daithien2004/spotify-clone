@@ -20,6 +20,7 @@ yarn-error.log*
 
 # Spring Boot local profile (chua secrets that, khong commit)
 backend/src/main/resources/application-local.yml
+**/application-local.yml
 
 # Frontend env files
 .env

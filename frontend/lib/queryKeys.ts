@@ -12,4 +12,8 @@ export const queryKeys = {
     all: ["playlists"] as const,
     detail: (id: string) => [...queryKeys.playlists.all, id] as const,
   },
+  home: {
+    all: ["home"] as const,
+    sections: () => [...queryKeys.home.all, "sections"] as const,
+  },
 } as const;
