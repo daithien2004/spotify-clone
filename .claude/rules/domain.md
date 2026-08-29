@@ -6,7 +6,7 @@ This document bridges the gap between microservices. For detailed domain logic, 
 
 | **Auth** | User identity, password security | 
 | **Playlist** | Track ordering, collections | 
-| **Track** (Backlog) | Upload, streaming, metadata | 
+| **Track** | Upload, streaming, metadata | 
 | **Search** (Backlog) | Elasticsearch indexing | 
 
 ## Global Cross-Cutting Concerns
@@ -20,9 +20,9 @@ This document bridges the gap between microservices. For detailed domain logic, 
 | Subject | Action | From Service | To Service |
 | :--- | :--- | :--- | :--- |
 | `User` | `Registered` | `auth-service` | `user-service`, `email-service` |
-| `Track` | `Uploaded` | `track-service` (Backlog) | `search-service`, `notify-service` |
+| `Track` | `Uploaded` | `track-service` | `search-service`, `notify-service` |
 | `Playlist` | `TrackMoved` | `playlist-service` | `search-service` |
-| `Playlist` | `TrackAdded` | `playlist-service` (Backlog) | `search-service` |
+| `Playlist` | `TrackAdded` | `playlist-service` | `search-service` |
 
 ---
 

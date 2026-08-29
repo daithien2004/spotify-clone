@@ -1,26 +1,90 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Heart, MoreHorizontal, Play } from "lucide-react";
-import { PLAYLISTS } from "@/lib/musicData";
 import { TrackTable } from "@/components/playlist/TrackTable";
 import { Button } from "@/components/ui/button";
+import { queryKeys } from "@/lib/queryKeys";
+import {
+  formatDurationLabel,
+  toPlayerTrack,
+  trackResponseToTrackItem,
+} from "@/lib/adapters";
+import { PlaylistService } from "@/services/api/playlistService";
+import { TrackService } from "@/services/api/trackService";
+import { usePlayerStore } from "@/hooks/usePlayerStore";
 
-/** Màn Playlist (Figma Chill Mix 131:2938): header gradient + TrackTable. */
-export default async function PlaylistPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const playlist = PLAYLISTS[id];
+/** Màn Playlist (Figma Chill Mix 131:2938): header gradient + TrackTable.
+ *  Dữ liệu thật từ playlist-service + track-service (join theo trackId, lexoRank). */
+export default function PlaylistPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
 
-  if (!playlist) {
-    notFound();
+  const playQueue = usePlayerStore((s) => s.playQueue);
+
+  const playlistQuery = useQuery({
+    queryKey: queryKeys.playlists.detail(id),
+    queryFn: () => PlaylistService.getPlaylist(id),
+    retry: false,
+  });
+
+  const tracksQuery = useQuery({
+    queryKey: queryKeys.playlists.tracks(id),
+    queryFn: () => PlaylistService.getPlaylistTracks(id),
+    retry: false,
+  });
+
+  const trackIds = useMemo(
+    () => tracksQuery.data?.map((m) => m.trackId) ?? [],
+    [tracksQuery.data]
+  );
+
+  const metadataQuery = useQuery({
+    queryKey: queryKeys.tracks.list({ ids: trackIds }),
+    queryFn: () => TrackService.getTracksByIds(trackIds),
+    enabled: trackIds.length > 0,
+  });
+
+  // Join membership (thứ tự lexoRank) với metadata → TrackItem list.
+  const songs = useMemo(() => {
+    const tracks = metadataQuery.data;
+    if (!tracks || !tracksQuery.data) return [];
+    const byId = new Map(tracks.map((t) => [t.id, t]));
+    return tracksQuery.data.flatMap((membership) => {
+      const t = byId.get(membership.trackId);
+      return t ? [trackResponseToTrackItem(t)] : [];
+    });
+  }, [tracksQuery.data, metadataQuery.data]);
+
+  const playlist = playlistQuery.data;
+  const loading = playlistQuery.isPending || tracksQuery.isPending;
+  const notFound = playlistQuery.isError || tracksQuery.isError;
+
+  if (notFound) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <p className="text-sm text-text-muted">Playlist not found.</p>
+      </div>
+    );
+  }
+  if (loading || !playlist) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <p className="text-sm text-text-muted">Loading playlist…</p>
+      </div>
+    );
   }
 
-  const artistNames = Array.from(
-    new Set(playlist.songs.map((s) => s.artist))
-  ).join(", ");
+  const totalSec = songs.reduce((sum, s) => sum + s.durationSec, 0);
+  const artistNames = Array.from(new Set(songs.map((s) => s.artist))).join(", ");
+
+  const handlePlay = () => {
+    if (songs.length === 0) return;
+    playQueue(songs.map(toPlayerTrack), 0);
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -45,20 +109,21 @@ export default async function PlaylistPage({
             {playlist.title}
           </h1>
           <p className="mt-3 truncate text-sm text-text-soft">
-            {artistNames} and more
+            {artistNames ? `${artistNames} and more` : playlist.description}
           </p>
           <p className="mt-2 text-sm text-text-soft">
             Made for <span className="font-bold text-text-primary">You</span>
           </p>
           <p className="mt-2 text-xs font-medium text-text-soft">
-            {playlist.owner} · {playlist.type} · {playlist.totalSongs} songs,{" "}
-            {playlist.totalDurationLabel}
+            {playlist.owner} · {playlist.type} · {songs.length} songs,{" "}
+            {formatDurationLabel(totalSec) || "—"}
           </p>
         </div>
       </header>
 
       <div className="flex items-center gap-6 bg-bg-secondary/80 px-6 py-4">
         <Button
+          onClick={handlePlay}
           className="h-12 w-12 rounded-full bg-accent-primary p-0 text-accent-primary-foreground shadow-xl hover:scale-105 hover:bg-accent-primary/90 transition-transform"
           aria-label={`Play ${playlist.title}`}
         >
@@ -82,7 +147,10 @@ export default async function PlaylistPage({
 
       {/* Track table — gradient dần về nền chính */}
       <div className="bg-gradient-to-b from-bg-secondary to-bg-primary pb-4 pt-2">
-        <TrackTable tracks={playlist.songs} />
+        <TrackTable
+          tracks={songs}
+          onPlayRow={(t, index) => playQueue(songs.map(toPlayerTrack), index)}
+        />
       </div>
     </div>
   );

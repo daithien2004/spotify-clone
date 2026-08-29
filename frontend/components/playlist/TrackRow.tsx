@@ -11,6 +11,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { usePlayerStore } from "@/hooks/usePlayerStore";
+import { toPlayerTrack } from "@/lib/adapters";
 import type { TrackItem } from "@/lib/musicTypes";
 
 /** Dòng track trong bảng playlist (Figma 131:2938); right-click = context menu (325:7536). */
@@ -24,23 +25,25 @@ function formatDuration(sec: number): string {
 export function TrackRow({
   index,
   track,
+  onPlay,
 }: {
   index: number;
   track: TrackItem;
+  /** Page truyền vào khi cần đẩy cả playlist làm queue (click → play trong queue). */
+  onPlay?: (track: TrackItem, index: number) => void;
 }) {
   const setCurrentTrack = usePlayerStore((state) => state.setCurrentTrack);
   const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const addToQueue = usePlayerStore((state) => state.addToQueue);
 
   const playTrack = useCallback(() => {
-    setCurrentTrack({
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      imageUrl: track.coverUrl ?? "/figma/daily-mix-4.png",
-      duration: track.durationSec,
-    });
+    if (onPlay) {
+      onPlay(track, index);
+      return;
+    }
+    setCurrentTrack(toPlayerTrack(track));
     setIsPlaying(true);
-  }, [track, setCurrentTrack, setIsPlaying]);
+  }, [track, index, onPlay, setCurrentTrack, setIsPlaying]);
 
   return (
     <ContextMenu>
@@ -91,7 +94,10 @@ export function TrackRow({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-56 rounded-lg bg-bg-tertiary/95 p-1.5 shadow-2xl backdrop-blur-md">
-        <ContextMenuItem className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10">
+        <ContextMenuItem
+          className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10"
+          onSelect={() => addToQueue(toPlayerTrack(track))}
+        >
           Add to queue
         </ContextMenuItem>
         <ContextMenuItem className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10">

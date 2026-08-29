@@ -4,7 +4,14 @@ import type { TrackItem } from "@/lib/musicTypes";
 import { TrackRow } from "./TrackRow";
 
 /** Track table (Figma 131:2938). */
-export function TrackTable({ tracks }: { tracks: TrackItem[] }) {
+export function TrackTable({
+  tracks,
+  onPlayRow,
+}: {
+  tracks: TrackItem[];
+  /** Khi có, click dòng track đi qua page để set queue (thay vì play đơn lẻ). */
+  onPlayRow?: (track: TrackItem, index: number) => void;
+}) {
   return (
     <div role="table" aria-label="Tracks" className="w-full">
       {/* Header */}
@@ -27,7 +34,7 @@ export function TrackTable({ tracks }: { tracks: TrackItem[] }) {
 
       <div className="space-y-0.5 py-2">
         {tracks.map((track, index) => (
-          <TrackRow key={track.id} index={index} track={track} />
+          <TrackRow key={track.id} index={index} track={track} onPlay={onPlayRow} />
         ))}
       </div>
     </div>

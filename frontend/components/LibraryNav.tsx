@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import { Home, Library, Plus, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAYLISTS } from "@/lib/musicData";
+import { queryKeys } from "@/lib/queryKeys";
+import {
+  PlaylistService,
+  type PlaylistSummaryItem,
+} from "@/services/api/playlistService";
 
 /** Sidebar trái (Figma "Spotify Music UI Design (Community)" 124:2941). */
 
@@ -24,8 +30,24 @@ const NAV_ITEMS = [
   },
 ] as const;
 
+/** Khi API playlist không tới được (offline demo) — sidebar vẫn có nội dung. */
+function fallbackSummaries(): PlaylistSummaryItem[] {
+  return Object.values(PLAYLISTS)
+    .slice(0, 3)
+    .map((p) => ({ id: p.id, title: p.title, owner: p.owner, coverUrl: p.coverUrl }));
+}
+
 export function LibraryNav() {
   const pathname = usePathname();
+
+  const playlistsQuery = useQuery({
+    queryKey: queryKeys.playlists.list(),
+    queryFn: PlaylistService.listPlaylists,
+    staleTime: 60_000,
+  });
+
+  const playlists =
+    playlistsQuery.isError ? fallbackSummaries() : playlistsQuery.data ?? [];
 
   return (
     <aside className="flex h-full flex-col gap-2">
@@ -87,7 +109,7 @@ export function LibraryNav() {
 
         <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
           <ul className="space-y-2 px-3 pb-2">
-            {Object.values(PLAYLISTS).map((pl) => (
+            {playlists.map((pl) => (
               <li key={pl.id}>
                 <Link
                   href={`/playlist/${pl.id}`}

@@ -14,8 +14,8 @@
 
     <groupId>com.spotify</groupId>
     <artifactId>backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <version>0.0.1-SNAPSHOT</version>
     <name>spotify-clone-backend</name>
     <description>Spotify Clone Backend - Maven multi-module (common-lib, auth-service, playlist-service)</description>
 
@@ -23,6 +23,7 @@
         <module>common-lib</module>
         <module>auth-service</module>
         <module>playlist-service</module>
+        <module>track-service</module>
     </modules>
 
     <properties>
@@ -34,6 +35,7 @@
         <bucket4j.version>8.10.1</bucket4j.version>
         <totp.version>1.7.1</totp.version>
         <flyway-postgres.version>10.15.0</flyway-postgres.version>
+        <minio.version>8.5.12</minio.version>
     </properties>
 
     <dependencyManagement>

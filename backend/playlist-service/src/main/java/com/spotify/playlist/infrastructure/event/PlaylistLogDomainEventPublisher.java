@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class playlistLogDomainEventPublisher implements DomainEventPublisher {
+public class PlaylistLogDomainEventPublisher implements DomainEventPublisher {
     @Override
     public void publish(DomainEvent event) {
         log.info("Domain Event Published: {} | ID: {} | At: {}", 

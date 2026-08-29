@@ -6,10 +6,26 @@ import axios, {
 } from "axios";
 import { useAuthStore } from "@/hooks/useAuthStore";
 
+/**
+ * Envelope chuẩn của backend (common-lib ApiResponse): mọi success response
+ * đều được GlobalResponseWrapper bọc thành { success, data, message, timestamp }.
+ */
 export interface ApiResponse<T = unknown> {
+  success: boolean;
   data: T;
   message?: string;
-  status: number;
+  timestamp: string;
+}
+
+/** Lấy payload thật ra khỏi envelope — gọi sau khi api.* trả về toàn bộ body. */
+export function unwrap<T>(envelope: ApiResponse<T>): T {
+  return envelope.data;
+}
+
+/** Quy đường dẫn tương đối (vd /api/v1/tracks/x/audio) về absolute qua gateway. */
+export function resolveApiUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export interface ApiError {

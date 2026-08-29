@@ -4,10 +4,8 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-  // UI demo routes — cho phép xem màn Playlist không cần đăng nhập.
-  const isDemoPage =
-    request.nextUrl.pathname.startsWith('/playlist');
-  const isPublicPage = request.nextUrl.pathname === '/' || isAuthPage || isDemoPage;
+  // Playlist không còn là demo page — backend yêu cầu JWT nên cần login.
+  const isPublicPage = request.nextUrl.pathname === '/' || isAuthPage;
 
   // If user is not logged in and tries to access private routes
   if (!token && !isPublicPage) {

@@ -31,7 +31,8 @@ spotify-clone/
 ├── backend/           # Maven multi-module (parent POM)
 │   ├── common-lib/        # shared: ApiResponse, GatewayHeaderFilter, ServiceSecurityConfig
 │   ├── auth-service/      # Spring Boot app (8081) — JWT/OAuth2/2FA/account security
-│   └── playlist-service/  # Spring Boot app (8084) — track ordering, collections
+│   ├── playlist-service/  # Spring Boot app (8084) — track ordering, collections
+│   └── track-service/     # Spring Boot app (8085) — track catalog metadata
 ├── gateway/           # Spring Cloud Gateway (9000) — routes to 8081/8084
 └── frontend/          # Next.js React application
 ```

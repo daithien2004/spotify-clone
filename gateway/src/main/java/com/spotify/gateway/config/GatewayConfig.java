@@ -24,6 +24,9 @@ public class GatewayConfig {
                 .route("playlist-service", r -> r.path("/api/v1/playlists/**")
                         .filters(f -> f.filter(authFilter))
                         .uri("http://localhost:8084"))
+                .route("track-service", r -> r.path("/api/v1/tracks/**")
+                        .filters(f -> f.filter(authFilter))
+                        .uri("http://localhost:8085"))
                 .build();
     }
 }

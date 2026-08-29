@@ -10,6 +10,8 @@ export interface TrackItem {
   /** e.g. "Mar 3, 2026" */
   dateAdded: string;
   coverUrl?: string;
+  /** Đường dẫn tương đối tới streaming endpoint (resolve qua resolveApiUrl). */
+  audioUrl?: string;
 }
 
 export interface Playlist {

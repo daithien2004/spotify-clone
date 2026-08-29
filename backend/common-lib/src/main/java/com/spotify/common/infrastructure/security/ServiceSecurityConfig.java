@@ -23,7 +23,7 @@ public class ServiceSecurityConfig {
     @Order(2)
     public SecurityFilterChain serviceSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/v1/playlists/**", "/api/v1/songs/**", "/api/v1/users/**") // Add other service paths here
+                .securityMatcher("/api/v1/playlists/**", "/api/v1/tracks/**", "/api/v1/songs/**", "/api/v1/users/**") // Add other service paths here
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth

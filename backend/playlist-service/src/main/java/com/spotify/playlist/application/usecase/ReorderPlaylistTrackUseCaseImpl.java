@@ -28,6 +28,10 @@ public class ReorderPlaylistTrackUseCaseImpl implements ReorderPlaylistTrackUseC
         PlaylistTrack track = playlistTrackRepository.findById(request.playlistTrackId())
                 .orElseThrow(() -> new IllegalArgumentException("Playlist track not found"));
 
+        if (!track.getPlaylistId().equals(request.playlistId())) {
+            throw new IllegalArgumentException("Playlist track does not belong to playlist " + request.playlistId());
+        }
+
         LexoRank prev = request.prevRank() != null ? new LexoRank(request.prevRank()) : null;
         LexoRank next = request.nextRank() != null ? new LexoRank(request.nextRank()) : null;
 
@@ -38,8 +42,8 @@ public class ReorderPlaylistTrackUseCaseImpl implements ReorderPlaylistTrackUseC
         
         domainEventPublisher.publish(new TrackMovedInPlaylist(track.getPlaylistId(), track.getTrackId(), newRank.value()));
 
-        // Precision check for rebalancing (Task 5 will implement the actual job)
-        if (newRank.value().length() > 30) {
+        // Precision check — delegate heavy work to the async rebalance use case
+        if (newRank.value().length() > LexoRankService.PRECISION_LIMIT) {
             log.warn("LexoRank precision limit reached for playlist {}. Rebalancing triggered.", track.getPlaylistId());
             rebalancePlaylistUseCase.execute(track.getPlaylistId());
         }
