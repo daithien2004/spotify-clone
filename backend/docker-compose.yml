@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Database-per-service: mỗi service sở hữu DB riêng (auth_db, playlist_db).
   # Mirrors the application.yml datasource URL của từng service.
@@ -56,6 +54,20 @@ services:
       - track_postgres_data:/var/lib/postgresql/data
     restart: always
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: spotify_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ingest.geoip.downloader.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    restart: always
+
   redis:
     image: redis:7-alpine
     container_name: spotify_redis
@@ -87,7 +99,7 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     ports:
-      - "8086:8080"
+      - "8087:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -100,4 +112,5 @@ volumes:
   playlist_postgres_data:
   track_postgres_data:
   minio_data:
+  es_data:
   kafka_data:
