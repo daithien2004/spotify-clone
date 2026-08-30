@@ -3,7 +3,6 @@ package com.spotify.auth.presentation.controller;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +25,7 @@ import com.spotify.auth.application.usecase.GetCurrentUserUseCase;
 import com.spotify.auth.application.usecase.VerifyTwoFactorSetupUseCase;
 import com.spotify.auth.application.usecase.DisableTwoFactorUseCase;
 import com.spotify.auth.application.usecase.UpdateProfileUseCase;
+import com.spotify.auth.infrastructure.security.AuthCookieFactory;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -146,45 +146,15 @@ public class AuthController {
     }
 
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        // Access Token Cookie (shorter life)
-        ResponseCookie accessCookie = ResponseCookie.from("auth-token", accessToken)
-                .httpOnly(true)
-                .secure(false) // Set to true in production with HTTPS
-                .path("/")
-                .domain(cookieDomain)
-                .maxAge(15 * 60)
-                .sameSite("Lax")
-                .build();
- 
-        // Refresh Token Cookie (longer life)
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh-token", refreshToken)
-                .httpOnly(true)
-                .secure(false) // Set to true in production with HTTPS
-                .path("/")
-                .domain(cookieDomain)
-                .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Lax")
-                .build();
- 
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        response.addHeader("Set-Cookie",
+            AuthCookieFactory.accessTokenCookie(accessToken, 15 * 60, cookieDomain).toString());
+        response.addHeader("Set-Cookie",
+            AuthCookieFactory.refreshTokenCookie(refreshToken, 7 * 24 * 60 * 60, cookieDomain).toString());
     }
- 
+
     private void clearAuthCookies(HttpServletResponse response) {
-        ResponseCookie accessCookie = ResponseCookie.from("auth-token", "")
-                .httpOnly(true)
-                .path("/")
-                .domain(cookieDomain)
-                .maxAge(0)
-                .build();
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh-token", "")
-                .httpOnly(true)
-                .path("/")
-                .domain(cookieDomain)
-                .maxAge(0)
-                .build();
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        response.addHeader("Set-Cookie", AuthCookieFactory.clearCookie("auth-token", cookieDomain).toString());
+        response.addHeader("Set-Cookie", AuthCookieFactory.clearCookie("refresh-token", cookieDomain).toString());
     }
  
     private String getCookieValue(HttpServletRequest request, String name) {

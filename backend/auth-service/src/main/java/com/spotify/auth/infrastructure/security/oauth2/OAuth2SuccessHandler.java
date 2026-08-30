@@ -4,11 +4,11 @@ import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.entity.RefreshToken;
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.repository.RefreshTokenRepository;
+import com.spotify.auth.infrastructure.security.AuthCookieFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -28,6 +28,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final TokenPort tokenPort;
     private final RefreshTokenRepository refreshTokenRepository;
+
+    @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
+    private String cookieDomain;
 
     private static final String FRONTEND_CALLBACK_URL = "http://localhost:3000/oauth2/callback";
 
@@ -55,24 +58,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         refreshTokenRepository.save(refreshToken);
 
         // 3. Set HttpOnly cookies
-        ResponseCookie accessCookie = ResponseCookie.from("auth-token", accessToken)
-                .httpOnly(true)
-                .secure(false) // Set to true in production
-                .path("/")
-                .maxAge(accessExpiresIn / 1000)
-                .sameSite("Lax")  // Lax is required for OAuth2 redirects
-                .build();
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh-token", refreshTokenStr)
-                .httpOnly(true)
-                .secure(false)
-                .path("/api/v1/auth/refresh")
-                .maxAge(refreshExpiresIn / 1000)
-                .sameSite("Lax")
-                .build();
-
-        response.addHeader("Set-Cookie", accessCookie.toString());
-        response.addHeader("Set-Cookie", refreshCookie.toString());
+        // Đồng bộ với AuthController: path /, domain, sameSite Lax (ADR D5)
+        response.addHeader("Set-Cookie", AuthCookieFactory.accessTokenCookie(
+            accessToken, accessExpiresIn / 1000, cookieDomain).toString());
+        response.addHeader("Set-Cookie", AuthCookieFactory.refreshTokenCookie(
+            refreshTokenStr, refreshExpiresIn / 1000, cookieDomain).toString());
 
         log.info("OAuth2 login successful for user: {}", user.getEmail().value());
 
