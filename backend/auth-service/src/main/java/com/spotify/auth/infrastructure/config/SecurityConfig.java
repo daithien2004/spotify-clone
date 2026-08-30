@@ -47,7 +47,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register",
-                                "/api/v1/auth/refresh", "/error/**").permitAll()
+                                "/api/v1/auth/refresh", "/error/**",
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                "/api/v1/auth/send-verification", "/api/v1/auth/verify-email",
+                                "/api/v1/auth/2fa/verify-login").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayHeaderFilter, UsernamePasswordAuthenticationFilter.class)
