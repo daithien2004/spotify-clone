@@ -293,7 +293,7 @@ public class TotpAdapter implements TotpPort {
   }
 }
 ```
-> `QrData.Builder()`/`QrData.fromUri()` có sẵn từ totp 1.7.1; `CodeVerifier.isValidCode(secret, code)` — window 0, SHA1, 6 digits, 30s (beans `TotpConfig`).
+> **⚠️ CORRECTED AT IMPLEMENTATION (Ruling 2026-08-30):** `QrData.fromUri(String)` và `QrGenerator.generate(QrData, int)` KHÔNG tồn tại trong totp **1.7.1** (`javap` trên jar 1.7.1: `QrData` chỉ có `Builder` + package-private ctor; `QrGenerator.generate(QrData)` 1 arg; image size ở `ZxingPngQrGenerator.setImageSize`, default 200). Triển khai thực tế: `generateQrDataUri(String otpauthUri)` parse URI → rebuild `QrData` qua `QrData.Builder` (label từ path, issuer/secret/digits/period từ query, defaults digits=6 period=30) → `qrGenerator.generate(qrData)` (default size 200 = tương đương tham số 200 của plan). Port contract + test KHÔNG đổi. Quyết định này lưu tại ledger (`Ruling: QrData.fromUri`).
 
 - [ ] **Step 5: Run — verify pass**
 
