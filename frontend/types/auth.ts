@@ -6,6 +6,20 @@ export interface AuthResponse {
   displayName: string;
   avatarUrl: string | null;
   expiresIn: number;
+  mfaRequired?: boolean;
+  mfaToken?: string;
+  twoFactorEnabled?: boolean;
+  emailVerified?: boolean;
+}
+
+export interface UpdateProfileRequest {
+  displayName?: string;
+  avatarUrl?: string | null;
+}
+
+export interface Enroll2faResponse {
+  otpauthUrl: string;
+  qrDataUri: string;
 }
 
 export interface LoginRequest {
