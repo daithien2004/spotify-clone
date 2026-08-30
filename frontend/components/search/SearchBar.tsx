@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Search as SearchIcon, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { SearchResultRow } from "@/components/search/SearchResultRow";
 import { SearchSuggestionRow } from "@/components/search/SearchSuggestionRow";
-import { TRACK_INDEX } from "@/lib/musicData";
 import { usePlayerStore } from "@/hooks/usePlayerStore";
-import { SearchService } from "@/services/search/searchService";
+import { queryKeys } from "@/lib/queryKeys";
+import { SearchApiService, type SearchItem } from "@/services/api/searchService";
 
 /**
  * Search trên header (Figma 13:2): combobox giữa TopNav + dropdown
@@ -15,16 +16,45 @@ import { SearchService } from "@/services/search/searchService";
  */
 export function SearchBar() {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const setCurrentTrack = usePlayerStore((s) => s.setCurrentTrack);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
 
-  const results = useMemo(() => SearchService.searchTracks(query, TRACK_INDEX), [query]);
+  // Debounce 300ms — avoid one request per keystroke while typing.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const tracksQuery = useQuery({
+    queryKey: queryKeys.search.tracks(debouncedQuery),
+    queryFn: () => SearchApiService.search(debouncedQuery),
+    enabled: debouncedQuery.trim() !== "",
+  });
+
+  // Backend results are authoritative; map them onto the shapes the pure logic + rows expect.
+  const liveIndex = useMemo<SearchItem[]>(() => tracksQuery.data ?? [], [tracksQuery.data]);
+  const results = useMemo(
+    () =>
+      liveIndex.map((t) => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        album: t.album,
+        coverUrl: t.artworkUrl,
+      })),
+    [liveIndex]
+  );
   const suggestions = useMemo(
-    () => SearchService.searchSuggestions(query, TRACK_INDEX),
-    [query]
+    () =>
+      liveIndex.flatMap((t) => [
+        { id: `${t.id}-title`, text: t.title },
+        { id: `${t.id}-artist`, text: t.artist },
+      ]),
+    [liveIndex]
   );
   const isEmpty = query.trim() === "";
   const showDropdown = open && !isEmpty;
@@ -55,18 +85,19 @@ export function SearchBar() {
   // Chọn bài hát → phát trên Player (giống MusicCard) và đóng dropdown.
   const handleSelectTrack = useCallback(
     (result: { id: string; title: string; artist: string; coverUrl?: string }) => {
-      const track = TRACK_INDEX.find((t) => t.id === result.id);
+      const track = liveIndex.find((t) => t.id === result.id);
       setCurrentTrack({
         id: result.id,
         title: result.title,
         artist: result.artist,
-        imageUrl: result.coverUrl ?? "",
-        duration: track?.durationSec ?? 0,
+        imageUrl: result.coverUrl ?? track?.artworkUrl ?? "",
+        duration: track?.durationMs ? Math.round(track.durationMs / 1000) : 0,
+        audioUrl: track?.audioUrl,
       });
       setIsPlaying(true);
       setOpen(false);
     },
-    [setCurrentTrack, setIsPlaying]
+    [liveIndex, setCurrentTrack, setIsPlaying]
   );
 
   const handleKeyDown = useCallback(

@@ -18,4 +18,8 @@ export const queryKeys = {
     all: ["home"] as const,
     sections: () => [...queryKeys.home.all, "sections"] as const,
   },
+  search: {
+    all: ["search"] as const,
+    tracks: (q: string) => [...queryKeys.search.all, "tracks", q] as const,
+  },
 } as const;
