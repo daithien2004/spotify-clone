@@ -44,6 +44,11 @@ public class User implements Serializable {
     private int failedLoginAttempts = 0;
     private OffsetDateTime lockedUntil;
 
+    // === TOTP 2FA ===
+    private String totpSecret;
+    @Builder.Default
+    private boolean totpEnabled = false;
+
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -64,6 +69,28 @@ public class User implements Serializable {
     public void updateProfile(String displayName, String avatarUrl) {
         this.displayName = displayName;
         this.avatarUrl = avatarUrl;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public boolean isTwoFactorEnabled() {
+        return this.totpEnabled;
+    }
+
+    /** Lưu secret 2FA khi enroll — CHƯA bật (bật sau khi verify code, ADR D2) */
+    public void storePendingTotpSecret(String secret) {
+        this.totpSecret = secret;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void enable2fa(String secret) {
+        this.totpSecret = secret;
+        this.totpEnabled = true;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void disable2fa() {
+        this.totpSecret = null;
+        this.totpEnabled = false;
         this.updatedAt = OffsetDateTime.now();
     }
 

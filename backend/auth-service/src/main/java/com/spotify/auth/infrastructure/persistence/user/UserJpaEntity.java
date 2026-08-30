@@ -53,4 +53,11 @@ public class UserJpaEntity extends BaseJpaEntity {
     @Column(name = "provider_id")
     private String providerId;
 
+    // === TOTP 2FA ===
+    @Column(name = "totp_secret")
+    private String totpSecret;
+
+    @Column(name = "totp_enabled", nullable = false)
+    private boolean totpEnabled = false;
+
 }
