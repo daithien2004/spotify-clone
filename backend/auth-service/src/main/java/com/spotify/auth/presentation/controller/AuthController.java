@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.spotify.auth.application.usecase.ForgotPasswordUseCase;
+import com.spotify.auth.application.usecase.EnrollTwoFactorUseCase;
 import com.spotify.auth.application.usecase.LoginUseCase;
 import com.spotify.auth.application.usecase.LogoutUseCase;
 import com.spotify.auth.application.usecase.RefreshTokenUseCase;
@@ -20,6 +21,7 @@ import com.spotify.auth.application.usecase.RequestEmailVerificationUseCase;
 import com.spotify.auth.application.usecase.ResetPasswordUseCase;
 import com.spotify.auth.application.usecase.VerifyEmailUseCase;
 import com.spotify.auth.application.usecase.GetCurrentUserUseCase;
+import com.spotify.auth.application.usecase.VerifyTwoFactorSetupUseCase;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -42,7 +44,9 @@ public class AuthController {
     private final ForgotPasswordUseCase forgotPasswordUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
     private final GetCurrentUserUseCase getCurrentUserUseCase;
- 
+    private final EnrollTwoFactorUseCase enrollTwoFactorUseCase;
+    private final VerifyTwoFactorSetupUseCase verifyTwoFactorSetupUseCase;
+
     @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
     private String cookieDomain;
 
@@ -205,5 +209,30 @@ public class AuthController {
             return forwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    // ===== TOTP 2FA =====
+
+    @PostMapping("/2fa/enroll")
+    @SecurityRequirements()
+    public ResponseEntity<EnrollTwoFactorUseCase.EnrollResponse> enroll2fa(HttpServletRequest request) {
+        UUID userId = requiredUserId(request);
+        return ResponseEntity.ok(enrollTwoFactorUseCase.execute(userId));
+    }
+
+    @PostMapping("/2fa/verify")
+    @ResponseStatus(HttpStatus.OK)
+    @SecurityRequirements()
+    public void verify2faSetup(@Valid @RequestBody VerifyTwoFactorSetupUseCase.Request request,
+                               HttpServletRequest httpRequest) {
+        verifyTwoFactorSetupUseCase.execute(requiredUserId(httpRequest), request.code());
+    }
+
+    private UUID requiredUserId(HttpServletRequest request) {
+        String userIdStr = request.getHeader("X-User-Id");
+        if (userIdStr == null || userIdStr.isEmpty()) {
+            throw new com.spotify.auth.domain.exception.DomainException("Unauthorized");
+        }
+        return UUID.fromString(userIdStr);
     }
 }
