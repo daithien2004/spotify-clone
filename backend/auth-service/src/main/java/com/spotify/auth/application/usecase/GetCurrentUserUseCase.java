@@ -20,12 +20,15 @@ public class GetCurrentUserUseCase {
                                 user.getId().toString(),
                                 user.getEmail().value(),
                                 user.getDisplayName(),
-                                user.getAvatarUrl()
+                                user.getAvatarUrl(),
+                                user.isVerified(),
+                                user.isTwoFactorEnabled()
                         )
                 ))
                 .orElse(new Response(false, null));
     }
 
     public record Response(boolean success, UserResponse data) {}
-    public record UserResponse(String id, String email, String displayName, String avatarUrl) {}
+    public record UserResponse(String id, String email, String displayName, String avatarUrl,
+                               boolean emailVerified, boolean twoFactorEnabled) {}
 }

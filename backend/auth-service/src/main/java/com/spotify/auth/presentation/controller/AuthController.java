@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ import com.spotify.auth.application.usecase.VerifyEmailUseCase;
 import com.spotify.auth.application.usecase.GetCurrentUserUseCase;
 import com.spotify.auth.application.usecase.VerifyTwoFactorSetupUseCase;
 import com.spotify.auth.application.usecase.DisableTwoFactorUseCase;
+import com.spotify.auth.application.usecase.UpdateProfileUseCase;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -50,6 +52,7 @@ public class AuthController {
     private final VerifyTwoFactorSetupUseCase verifyTwoFactorSetupUseCase;
     private final DisableTwoFactorUseCase disableTwoFactorUseCase;
     private final VerifyTwoFactorLoginUseCase verifyTwoFactorLoginUseCase;
+    private final UpdateProfileUseCase updateProfileUseCase;
 
     @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
     private String cookieDomain;
@@ -67,6 +70,13 @@ public class AuthController {
         }
         
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<GetCurrentUserUseCase.UserResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileUseCase.Request request,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(updateProfileUseCase.execute(requiredUserId(httpRequest), request));
     }
 
     @PostMapping("/register")
