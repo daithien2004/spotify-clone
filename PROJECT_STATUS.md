@@ -1,18 +1,19 @@
 # Project Status — Spotify Clone
 
 > **Tài liệu sống (single source of truth) cho trạng thái dự án.**
-> Cập nhật khi xong milestone: giai đoạn, inventory, next actions. Dữ liệu ngày: **2026-08-29**.
+> Cập nhật khi xong milestone: giai đoạn, inventory, next actions. Dữ liệu ngày: **2026-08-30**.
 > Trước khi bắt tay bất kỳ task nào, đọc file này (theo `CLAUDE.md`) để nắm tổng thể FE/BE.
 
 ## Giai đoạn hiện tại
 
 **Phase E: FE nối API thật (playlist/tracks/player) + backend track MinIO.**
+**Phase E+ (2026-08-30): search-service (Elasticsearch) — endpoint search + FE SearchBar nối API thật.**
 
 | Phía | Trạng thái |
 |---|---|
-| **Frontend** | UI theo Figma (Home, Playlist, Header-search, Player, token system, unified scrollbar). Đã **nối API thật** qua Gateway: playlist metadata (`GET /playlists`, `/playlists/{id}`, `/playlists/{id}/tracks`), track metadata batch (`GET /tracks?ids=`), **Player phát audio từ MinIO** (`/tracks/{id}/audio` streaming, byte-range seek). Auth nối thật. `/playlist/*` **đã gate bắt login** (middleware). Chỉ Home feed + search index còn dùng mock. |
-| **Backend** | `auth` (JWT + OAuth2 Google qua Gateway, login/logout/register, Kafka basic) + `playlist` (LexoRank: add/get track, reorder, rebalance async; **có metadata Playlist** + GET list/detail + seed) + `track` (catalog metadata CRUD + batch GET, **phase 2: MinIO upload + streaming byte-range**). `user` / `search` service vẫn **Backlog** (xem `domain.md`). |
-| **Gateway** | Spring Cloud Gateway — route auth 8081 / playlist 8084 / track 8085 + JWT validation filter (certs). |
+| **Frontend** | UI theo Figma (Home, Playlist, Header-search, Player, token system, unified scrollbar). Đã **nối API thật** qua Gateway: playlist metadata (`GET /playlists`, `/playlists/{id}`, `/playlists/{id}/tracks`), track metadata batch (`GET /tracks?ids=`), **Player phát audio từ MinIO** (`/tracks/{id}/audio` streaming, byte-range seek), **SearchBar query `GET /search/tracks` thật** (debounce 300ms → React Query, suggestion từ kết quả live). Auth nối thật. `/playlist/*` **đã gate bắt login** (middleware). Chỉ Home feed còn dùng mock. |
+| **Backend** | `auth` (JWT + OAuth2 Google qua Gateway, login/logout/register, Kafka basic) + `playlist` (LexoRank: add/get track, reorder, rebalance async; **có metadata Playlist** + GET list/detail + seed) + `track` (catalog metadata CRUD + batch GET + **list-all `GET /tracks`**, **phase 2: MinIO upload + streaming byte-range**, **Kafka publish Track events**) + **`search` (port 8086, Elasticsearch: index `tracks`, consumer Kafka + bootstrap reindex, `GET /search/tracks`)**. `user`-service vẫn **Backlog** (xem `domain.md`). |
+| **Gateway** | Spring Cloud Gateway — route auth 8081 / playlist 8084 / track 8085 / **search 8086** + JWT validation filter (certs). |
 
 ## Frontend inventory
 
@@ -43,33 +44,39 @@
 ### Services & tests
 - `services/api/playlistService.ts` — `GET /playlists`, `/playlists/{id}`, `/playlists/{id}/tracks` (unwrap envelope → domain types)
 - `services/api/trackService.ts` — `GET /tracks?ids=` batch metadata (stream audio dùng trực tiếp làm `<audio src>`)
+- `services/api/searchService.ts` — **`GET /search/tracks?q=&limit=`** thật (spec §4), unwrap envelope → `SearchItem[]`; blank q short-circuit
 - `lib/adapters.ts` — map DTO backend → `TrackItem`/`Playlist`/store `Track` (durationMs→s, cover fallback, formatDuration)
 - `lib/api-client.ts` — axios instance: baseURL Gateway (`/api/v1`), envelope `ApiResponse<T>` + `unwrap()`, `resolveApiUrl()`, **refresh-token flow** (401 → `/auth/refresh`, queue các request chờ, clearAuth logout)
-- `services/search/searchService.ts` — logic search thuần (mock `TRACK_INDEX`), đã TDD
+- `services/search/searchService.ts` — logic search thuần (giữ nguyên — pure); **SearchBar không còn dùng `TRACK_INDEX`** (spec §7)
 - `services/api/authService.ts` — auth qua Gateway
-- Vitest: **26 test xanh** (searchService 11, SearchBar 8, PlayerProgress 3, usePlayerStore 4)
+- Vitest: **28 test xanh** (search-logic 11, SearchBar 7, services/api searchService 3, PlayerProgress 3, usePlayerStore 4)
 
 ## Backend inventory
 
 ### `backend/` — **Maven multi-module** (chuyển từ monolith → microservices, 2026-08-29)
 - `common-lib` — `ApiResponse`, `GlobalResponseWrapper`, `GatewayHeaderFilter`, `ServiceSecurityConfig` (jar chia sẻ)
 - `auth-service` (port **8081**) — Clean Arch: domain / application (usecase, port) / infrastructure (persistence, security **oauth2**, **TOTP 2FA**, messaging **Kafka**, Redis session) / presentation (controller)
-- `track-service` (port **8085**) — Clean Arch: domain (`Track`, `TrackAudioFile`, `TrackAudioRange`, events, `TrackRepository`/`TrackAudioRepository` port) / application (Create/GetByIds-batch/Update/**UploadAudio/GetAudio** usecase) / infrastructure (JPA adapter/mapper, **MinIO client**, log-only event publisher, exception handler) / presentation (controller)
-  - Metadata endpoints: `POST`/`PUT` `/api/v1/tracks`, `GET /api/v1/tracks/{id}`, `GET /api/v1/tracks?ids=a,b,c` (giữ thứ tự input) — DB `track_db`:5434, schema via Flyway `V1__init_track_schema` + `V2__seed_tracks.sql` (6 track cố định, `audio_url` → streaming endpoint)
+- `track-service` (port **8085**) — Clean Arch: domain (`Track`, `TrackAudioFile`, `TrackAudioRange`, events, `TrackRepository`/`TrackAudioRepository` port) / application (Create/GetByIds-batch/Update/List-all/**UploadAudio/GetAudio** usecase) / infrastructure (JPA adapter/mapper, **MinIO client**, **Kafka publisher**, exception handler) / presentation (controller)
+  - Metadata endpoints: `POST`/`PUT` `/api/v1/tracks`, `GET /api/v1/tracks/{id}`, `GET /api/v1/tracks?ids=a,b,c` (giữ thứ tự input) + **`GET /api/v1/tracks` list-all** (cho search-service bootstrap reindex; permitAll riêng `@Order(1)`) — DB `track_db`:5434, schema via Flyway `V1__init_track_schema` + `V2__seed_tracks.sql` (6 track cố định, `audio_url` → streaming endpoint)
   - **Phase 2 MinIO (2026-08-29):** `TrackAudioController` — `PUT /api/v1/tracks/{trackId}/audio` (upload MultipartFile → MinIO bucket `tracks`) + `GET .../audio` (**streaming HTTP byte-range** `Accept-Ranges/Content-Range`, seek được trong browser). Seed volatile vào MinIO lúc boot bởi `TrackAudioSeedInitializer`. Cấu hình `MinioConfig` (env `MINIO_*`, endpoint `:9010`)
-  - **Test: 19 xanh** (Create 5, GetByIds 3, Update 3, UploadAudio 4, GetAudio 2, Mapper 2). `Track.Uploaded`/`TrackAudioUploaded` event log-only (search/notify còn Backlog)
-- `playlist-service` (port **8084**) — Clean Arch: domain (entity, **LexoRankService** thuần, event) / application (usecase) / infrastructure (persistence adapter/mapper) / presentation (controller)
+  - **Kafka (2026-08-30):** `TrackKafkaDomainEventPublisher` publish `spotify.track.events` với **full track payload** (Uploaded/Updated/Removed/AudioUploaded), cờ `spring.kafka.enabled` (`KAFKA_ENABLED:true`); bật → bootstrap/consumer search-service nhận. `TrackEventEnvelope`/`TrackPayload` chung ở common-lib
+  - **Test: 26 xanh** (Create 5, GetByIds 3, Update 3, List 1, UploadAudio 4, GetAudio 2, Mapper 2, events 6)
+- `search-service` (port **8086**) — Clean Arch: domain (`TrackSearchDocument`, `TrackSearchRepository` port) / application (Index/Remove/Search track usecase) / infrastructure (**Elasticsearch adapter** `TrackElasticsearchRepository`, **Kafka consumer** `TrackEventConsumer` group `search-service-group`, **bootstrap** `TrackIndexBootstrap` reindex lúc boot, `RestTrackBootstrapFetcher` GET track-service list-all) / presentation (`SearchController`)
+  - Elasticsearch 8.15.3 (docker-compose `:9200`), index `tracks` mapping: title/artist/album text, durationMs long, artwork/audio URL keyword `index:false`. Query multi_match (title^3, artist^2, album) + fuzziness AUTO
+  - Endpoints: `GET /api/v1/search/tracks?q=&limit=` (default 10, clamp 1–50, `@Validated`); response wrap `ApiResponse` bởi common-lib `GlobalResponseWrapper`
+  - Event flow: track-service Kafka `spotify.track.events` → consumer index/remove; bootstrap đảm bảo history khi ES mới lên (spec §6)
+  - **Test: 16 xanh** (Index 4, Remove 2, Search 4, Consumer 4, Bootstrap 2)
   - Endpoints: `GET /api/v1/playlists` (list summary), `GET /api/v1/playlists/{playlistId}` (**metadata** — Playlist), `POST`/`GET` `/api/v1/playlists/{playlistId}/tracks`, `PUT /api/v1/playlists/{playlistId}/tracks/{playlistTrackId}/reorder`
   - **Metadata (2026-08-29):** `Playlist` entity + `PlaylistRepository` + `GetPlaylistById`/`ListPlaylists` usecase — DB `V2__add_playlists.sql` (bảng `playlists`) + `V3__seed_playlists.sql` (3 playlist cố định, fixed UUID join với track-service `V2__seed_tracks.sql`)
   - **LexoRank:** full charset `0-9A-Z_a-z` (63 ký tự) — midpoint theo vị trí charset; rebalance trigger khi append; `PlaylistRebalanceScheduler` 5 phút + `AsyncConfig` + `@EnableScheduling`
   - Error contract (convention §2): `GlobalExceptionHandler` (`infrastructure/exception/`) → 400/500, body `ApiResponse.error(...)`; `@Valid` + `@NotNull`
   - **Test: 27 xanh** (LexoRank 8, Scheduler 2, AddTrack 5, Reorder 5, GetPlaylistById 2, GetTracks 2, ListPlaylists 2, Rebalance 1)
 - **Database-per-service:** `auth_db` (5432) + `playlist_db` (5433) + **`track_db` (5434)** trong `docker-compose.yml` (migrations consolidated 2026-08-29: mỗi service đánh số riêng — auth gộp V1-V4,V6 + bỏ bảng dead `security_tokens`; playlist đổi tên V5 → V1, thêm V2 playlists + V3 seed; track V1 schema + V2 seed)
-- Infra môi trường: `docker-compose.yml` (**MinIO** `:9010`/console `:9011` bucket `tracks` + 3×Postgres `auth:5432`/`playlist:5433`/`track:5434` + Redis/Kafka/kafka-ui), `.env`
+- Infra môi trường: `docker-compose.yml` (**MinIO** `:9010`/console `:9011` bucket `tracks` + 3×Postgres `auth:5432`/`playlist:5433`/`track:5434` + Redis/Kafka/**kafka-ui `:8087`**/**Elasticsearch `:9200`** + volume `es_data`, 2026-08-30), `.env`
 - `common` cũ: `GlobalExceptionHandler` + auth exception → về auth-service (common cũ từng import ngược auth — đã gỡ phụ thuộc). **`GlobalResponseWrapperTest` (5 test)** cho envelope
 
 ### `gateway/` — Spring Cloud Gateway
-- Route config: `auth-oauth2`, auth login/register/refresh (bypass filter), protected `auth/**`, `playlists/**` → 8084, `tracks/**` → 8085 + JWT validation filter (certs)
+- Route config: `auth-oauth2`, auth login/register/refresh (bypass filter), protected `auth/**`, `playlists/**` → 8084, `tracks/**` → 8085, `search/**` → 8086 + JWT validation filter (certs)
 
 ### Skills / workflow
 - **`be-workflow`** (`.claude/skills/be-workflow/`) — pipeline bắt buộc cho task BE: 4 bước + 2 gate, verify `./mvnw test` + Clean Arch self-check + review độc lập.
@@ -78,7 +85,7 @@
 - **Đã bỏ 3 skill tự viết cũ** (`db-migration`/`kafka-event`/`security-review`) — không có SKILL.md; thay bằng skill cộng đồng. Kafka giữ inline theo `domain.md`.
 
 ### Backlog (theo `domain.md`)
-- `user-service` (profile, follows), `search-service` (Elasticsearch). Track upload/stream/MinIO **đã xong backend (phase 2)** — còn thiếu CDN/auth-cache + E2E upload thật qua UI
+- `user-service` (profile, follows). Track upload/stream/MinIO **đã xong backend (phase 2)** — còn thiếu CDN/auth-cache + E2E upload thật qua UI. **search-service đã xong (see above)**
 
 ## Next actions (dự kiến — để chủ dự án duyệt)
 1. ✅ Tạo `be-workflow` + cài plugin `engineering-advanced-skills` + bỏ skill cũ (2026-08-29)
@@ -92,8 +99,9 @@
    - **Player phát audio từ MinIO** — HTML5 `<audio src="/api/v1/tracks/{id}/audio">` (streaming byte-range qua gateway), duration thật từ metadata, seek/volume/queue đầy đủ (`usePlayerStore`)
    - **Gating `/playlist`** — `middleware.ts` redirect `/login` khi chưa có `auth-token` (chỉ `/` + trang auth public); api-client có **refresh-token flow** (401 → `/auth/refresh`)
    - Tests: FE 26 xanh, backend **64 xanh** (common-lib 5, auth 13, playlist 27, track 19)
-8. **Smoke test E2E qua cổng 9000** — docker-compose **mới gồm MinIO + track-db**, verify: login → list playlist → mở `/playlist/{id}` → **Player phát audio MinIO thật + seek** (luồng chưa chạy E2E thủ công trong phiên)
-9. (Sau) search-service Elasticsearch; user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
+8. 🟡 **Smoke test E2E qua cổng 9000** — docker-compose **mới gồm MinIO + track-db + Elasticsearch**, verify: login → list playlist → mở `/playlist/{id}` → **Player phát audio MinIO thật + seek** + **SearchBar result từ API thật** (luồng E2E thủ công chưa chạy trong phiên — xem checklist spec §9)
+9. ✅ **search-service Elasticsearch (2026-08-30)**: ES 8.15.3 compose, search-service 8086 (domain/application/infrastructure/presentation), consumer Kafka `spotify.track.events`, bootstrap reindex `GET /tracks`, `GET /api/v1/search/tracks` endpoint, gateway route, FE SearchBar nối API thật (debounce 300ms). Backend gate: **common-lib 7 + auth 13 + playlist 27 + track 26 + search 16 = 89 xanh**; FE 28 xanh
+10. (Sau) user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
 
 ## Cách dùng
 - **AI:** đọc file này khi bắt đầu mọi task/session; khi kết thúc milestone → **cập nhật** giai đoạn + inventory + next actions.

@@ -16,7 +16,7 @@
 - `presentation/`: Controllers, Request/Response DTOs, Exception Handlers — calls Use Cases only
 
 ## Microservices (monorepo — Maven multi-module)
-Repos vật lý: `backend/pom.xml` (parent) → `common-lib`, `auth-service`, `playlist-service`, `track-service`. Gateway (`gateway/`, port 9000) route tới từng service (auth 8081, playlist 8084, track 8085). Database-per-service: `auth_db` (5432) / `playlist_db` (5433) / `track_db` (5434) trong `backend/docker-compose.yml` (+ MinIO :9010).
+Repos vật lý: `backend/pom.xml` (parent) → `common-lib`, `auth-service`, `playlist-service`, `track-service`, `search-service`. Gateway (`gateway/`, port 9000) route tới từng service (auth 8081, playlist 8084, track 8085, search 8086). Database-per-service: `auth_db` (5432) / `playlist_db` (5433) / `track_db` (5434) trong `backend/docker-compose.yml` (+ MinIO :9010, Elasticsearch :9200, kafka-ui :8087).
 
 | Service | Status | Responsibility |
 |---|---|---|
@@ -24,8 +24,8 @@ Repos vật lý: `backend/pom.xml` (parent) → `common-lib`, `auth-service`, `p
 | `playlist-service` | ✅ `backend/playlist-service/` (port **8084**) | Playlist metadata + track ordering (LexoRank), add/get/reorder/rebalance |
 | `common-lib` | ✅ `backend/common-lib/` | ApiResponse envelope, GatewayHeaderFilter, ServiceSecurityConfig |
 | `user-service` | 🔴 Backlog | User profiles, follows |
-| `track-service` | ✅ `backend/track-service/` (port **8085**) | Track catalog metadata CRUD + batch GET + **audio upload/streaming (MinIO, HTTP byte-range)** |
-| `search-service` | 🔴 Backlog | Elasticsearch, full-text search |
+| `track-service` | ✅ `backend/track-service/` (port **8085**) | Track catalog metadata CRUD + batch GET + **audio upload/streaming (MinIO, HTTP byte-range)** + publish Track events (Kafka) |
+| `search-service` | ✅ `backend/search-service/` (port **8086**) | Elasticsearch full-text search: index `tracks`, Kafka consumer + bootstrap reindex, `GET /api/v1/search/tracks` |
 
 ## Technical Decisions (Đã chốt — không thay đổi)
 - **Use Case per feature:** Không dùng god-class Service.
