@@ -10,7 +10,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.spotify.auth.application.port.out.EmailPort;
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
+import com.spotify.auth.application.port.out.SecurityTokenPort;
 import com.spotify.auth.application.port.out.TokenPort;
 import com.spotify.auth.domain.entity.RefreshToken;
 import com.spotify.auth.domain.entity.User;
@@ -54,6 +56,11 @@ public class RegisterUseCase {
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenPort tokenPort;
     private final DomainEventPublisher domainEventPublisher;
+    private final SecurityTokenPort securityTokenPort;
+    private final EmailPort emailPort;
+
+    @org.springframework.beans.factory.annotation.Value("${app.base-url:http://localhost:3000}")
+    private String baseUrl;
 
     @Transactional
     public Response execute(Request request) {
@@ -76,6 +83,12 @@ public class RegisterUseCase {
 
         user = userRepository.save(user);
         domainEventPublisher.publish(new UserRegistered(user.getId(), user.getEmail().value()));
+
+        // Auto-send verification email (spec D6) — token EMAIL_VERIFICATION TTL 24h, single-use
+        String verificationToken = UUID.randomUUID().toString();
+        securityTokenPort.save(verificationToken, user.getId(), "EMAIL_VERIFICATION", 24 * 60 * 60L);
+        String verificationLink = baseUrl + "/verify-email?token=" + verificationToken;
+        emailPort.sendVerificationEmail(user.getEmail().value(), user.getDisplayName(), verificationLink);
 
         String token = tokenPort.generateToken(user);
         String refreshTokenStr = tokenPort.generateRefreshToken();
