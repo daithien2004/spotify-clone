@@ -22,6 +22,7 @@ import com.spotify.auth.application.usecase.ResetPasswordUseCase;
 import com.spotify.auth.application.usecase.VerifyEmailUseCase;
 import com.spotify.auth.application.usecase.GetCurrentUserUseCase;
 import com.spotify.auth.application.usecase.VerifyTwoFactorSetupUseCase;
+import com.spotify.auth.application.usecase.DisableTwoFactorUseCase;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -46,6 +47,7 @@ public class AuthController {
     private final GetCurrentUserUseCase getCurrentUserUseCase;
     private final EnrollTwoFactorUseCase enrollTwoFactorUseCase;
     private final VerifyTwoFactorSetupUseCase verifyTwoFactorSetupUseCase;
+    private final DisableTwoFactorUseCase disableTwoFactorUseCase;
 
     @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
     private String cookieDomain;
@@ -226,6 +228,13 @@ public class AuthController {
     public void verify2faSetup(@Valid @RequestBody VerifyTwoFactorSetupUseCase.Request request,
                                HttpServletRequest httpRequest) {
         verifyTwoFactorSetupUseCase.execute(requiredUserId(httpRequest), request.code());
+    }
+
+    @PostMapping("/2fa/disable")
+    @ResponseStatus(HttpStatus.OK)
+    public void disable2fa(@Valid @RequestBody VerifyTwoFactorSetupUseCase.Request request,
+                           HttpServletRequest httpRequest) {
+        disableTwoFactorUseCase.execute(requiredUserId(httpRequest), request.code());
     }
 
     private UUID requiredUserId(HttpServletRequest request) {
