@@ -3,7 +3,9 @@ package com.spotify.auth.application.usecase;
 import com.spotify.auth.application.port.out.EmailPort;
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
 import com.spotify.auth.application.port.out.SecurityAuditPublisher;
+import com.spotify.auth.application.port.out.SecurityTokenPort;
 import com.spotify.auth.application.port.out.TokenPort;
+import com.spotify.auth.application.port.out.TotpPort;
 import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.exception.DomainException;
 import com.spotify.auth.domain.repository.RefreshTokenRepository;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +47,12 @@ class LoginUseCaseTest {
 
     @Mock
     private SecurityAuditPublisher auditPublisher;
+
+    @Mock
+    private SecurityTokenPort securityTokenPort;
+
+    @Mock
+    private TotpPort totpPort;
 
     @InjectMocks
     private LoginUseCase loginUseCase;
@@ -92,5 +102,37 @@ class LoginUseCaseTest {
 
         // When & Then
         assertThrows(DomainException.class, () -> loginUseCase.execute(request));
+    }
+
+    @Test
+    void should_ReturnMfaRequired_when_UserHas2faEnabled() {
+        // Given
+        LoginUseCase.Request request = new LoginUseCase.Request("test@example.com", "Test1234", "127.0.0.1", "JUnit");
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .email(new Email("test@example.com"))
+                .password(new Password("Hashed1234"))
+                .displayName("User Name")
+                .totpSecret("JBSWY3DPEHPK3PXP")
+                .build();
+        user.enable2fa("JBSWY3DPEHPK3PXP");
+
+        when(userRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(user));
+        when(passwordEncoderPort.matches("Test1234", "Hashed1234")).thenReturn(true);
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        doNothing().when(securityTokenPort).save(any(String.class), any(UUID.class), any(String.class), anyLong());
+
+        // When
+        LoginUseCase.Response response = loginUseCase.execute(request);
+
+        // Then
+        assertTrue(response.mfaRequired());
+        assertNotNull(response.mfaToken());
+        assertTrue(response.twoFactorEnabled());
+        assertNull(response.accessToken());
+        // Không tạo refresh token + không audit LOGIN_SUCCESS ở bước nhập mật khẩu
+        verify(refreshTokenRepository, never()).save(any());
+        verify(auditPublisher, never()).publish(any(), any(), any(), any(), any(), any());
+        verify(securityTokenPort).save(any(), eq(user.getId()), eq("MFA_CHALLENGE"), eq(300L));
     }
 }

@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.spotify.auth.application.port.out.PasswordEncoderPort;
 import com.spotify.auth.application.port.out.SecurityAuditPublisher;
+import com.spotify.auth.application.port.out.SecurityTokenPort;
 import com.spotify.auth.application.port.out.TokenPort;
+import com.spotify.auth.application.port.out.TotpPort;
 import com.spotify.auth.domain.entity.RefreshToken;
 import com.spotify.auth.domain.entity.User;
 import com.spotify.auth.domain.exception.DomainException;
@@ -43,7 +45,10 @@ public class LoginUseCase {
             String email,
             String displayName,
             String avatarUrl,
-            long expiresIn
+            long expiresIn,
+            boolean mfaRequired,
+            String mfaToken,
+            boolean twoFactorEnabled
     ) {}
 
     private final UserRepository userRepository;
@@ -51,6 +56,8 @@ public class LoginUseCase {
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenPort tokenPort;
     private final SecurityAuditPublisher auditPublisher;
+    private final SecurityTokenPort securityTokenPort;
+    private final TotpPort totpPort;
 
     @Transactional
     public Response execute(Request request) {
@@ -86,6 +93,15 @@ public class LoginUseCase {
         user.recordSuccessfulLogin();
         userRepository.save(user);
 
+        // 2FA bật (local account): KHÔNG cấp token/cookie — trả mfaToken challenge (ADR D3)
+        if (user.isTwoFactorEnabled()) {
+            String mfaToken = UUID.randomUUID().toString();
+            securityTokenPort.save(mfaToken, user.getId(), VerifyTwoFactorLoginUseCase.TOKEN_TYPE,
+                    VerifyTwoFactorLoginUseCase.TTL_SECONDS);
+            return new Response(null, null, user.getId().toString(), user.getEmail().value(),
+                    user.getDisplayName(), user.getAvatarUrl(), 0, true, mfaToken, true);
+        }
+
         String accessToken = tokenPort.generateToken(user);
         String refreshTokenStr = tokenPort.generateRefreshToken();
         UUID familyId = UUID.randomUUID();
@@ -108,6 +124,7 @@ public class LoginUseCase {
         long expiresIn = tokenPort.getAccessTokenExpirationMillis() / 1000;
 
         return new Response(accessToken, refreshTokenStr, user.getId().toString(),
-                user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl(), expiresIn);
+                user.getEmail().value(), user.getDisplayName(), user.getAvatarUrl(), expiresIn,
+                false, null, false);
     }
 }

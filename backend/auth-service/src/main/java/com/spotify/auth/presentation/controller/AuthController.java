@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.spotify.auth.application.usecase.ForgotPasswordUseCase;
 import com.spotify.auth.application.usecase.EnrollTwoFactorUseCase;
 import com.spotify.auth.application.usecase.LoginUseCase;
+import com.spotify.auth.application.usecase.VerifyTwoFactorLoginUseCase;
 import com.spotify.auth.application.usecase.LogoutUseCase;
 import com.spotify.auth.application.usecase.RefreshTokenUseCase;
 import com.spotify.auth.application.usecase.RegisterUseCase;
@@ -48,6 +49,7 @@ public class AuthController {
     private final EnrollTwoFactorUseCase enrollTwoFactorUseCase;
     private final VerifyTwoFactorSetupUseCase verifyTwoFactorSetupUseCase;
     private final DisableTwoFactorUseCase disableTwoFactorUseCase;
+    private final VerifyTwoFactorLoginUseCase verifyTwoFactorLoginUseCase;
 
     @org.springframework.beans.factory.annotation.Value("${app.cookie-domain:localhost}")
     private String cookieDomain;
@@ -85,7 +87,23 @@ public class AuthController {
         String userAgent = httpRequest.getHeader("User-Agent");
         LoginUseCase.Response result = loginUseCase.execute(new LoginUseCase.Request(
                 request.email(), request.password(), ip, userAgent));
-        
+
+        if (!result.mfaRequired()) {
+            setAuthCookies(response, result.accessToken(), result.refreshToken());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/2fa/verify-login")
+    @SecurityRequirements()
+    public ResponseEntity<VerifyTwoFactorLoginUseCase.Response> verify2faLogin(
+            @Valid @RequestBody VerifyTwoFactorLoginUseCase.Request request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response) {
+        String ip = getClientIp(httpRequest);
+        String ua = httpRequest.getHeader("User-Agent");
+        var result = verifyTwoFactorLoginUseCase.execute(
+            new VerifyTwoFactorLoginUseCase.Request(request.mfaToken(), request.code(), ip, ua));
         setAuthCookies(response, result.accessToken(), result.refreshToken());
         return ResponseEntity.ok(result);
     }
