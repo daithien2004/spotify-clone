@@ -27,6 +27,9 @@ public class GatewayConfig {
                 .route("track-service", r -> r.path("/api/v1/tracks/**")
                         .filters(f -> f.filter(authFilter))
                         .uri("http://localhost:8085"))
+                .route("search-service", r -> r.path("/api/v1/search/**")
+                        .filters(f -> f.filter(authFilter))
+                        .uri("http://localhost:8086"))
                 .build();
     }
 }
