@@ -11,11 +11,18 @@ import { SocialButton } from "@/components/auth/SocialButton";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:9000";
+
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const registerMutation = useRegister();
+
+  const handleGoogleLogin = () => {
+    // Redirect to Gateway OAuth2 (Google) — toàn trang để nhận HttpOnly cookies.
+    window.location.href = `${GATEWAY_URL}/oauth2/authorization/google`;
+  };
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
@@ -96,6 +103,7 @@ export default function RegisterPage() {
 
           <div className="w-full space-y-3">
             <SocialButton
+              onClick={handleGoogleLogin}
               icon={
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

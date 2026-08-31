@@ -1,26 +1,27 @@
 # Project Status — Spotify Clone
 
 > **Tài liệu sống (single source of truth) cho trạng thái dự án.**
-> Cập nhật khi xong milestone: giai đoạn, inventory, next actions. Dữ liệu ngày: **2026-08-30**.
+> Cập nhật khi xong milestone: giai đoạn, inventory, next actions. Dữ liệu ngày: **2026-08-31**.
 > Trước khi bắt tay bất kỳ task nào, đọc file này (theo `CLAUDE.md`) để nắm tổng thể FE/BE.
 
 ## Giai đoạn hiện tại
 
 **Phase E: FE nối API thật (playlist/tracks/player) + backend track MinIO.**
 **Phase E+ (2026-08-30): search-service (Elasticsearch) — endpoint search + FE SearchBar nối API thật.**
+**Auth Completion (2026-08-30→31): hoàn thiện auth FE+BE — reset password, email verification, profile/account, TOTP 2FA.**
 
 | Phía | Trạng thái |
 |---|---|
-| **Frontend** | UI theo Figma (Home, Playlist, Header-search, Player, token system, unified scrollbar). Đã **nối API thật** qua Gateway: playlist metadata (`GET /playlists`, `/playlists/{id}`, `/playlists/{id}/tracks`), track metadata batch (`GET /tracks?ids=`), **Player phát audio từ MinIO** (`/tracks/{id}/audio` streaming, byte-range seek), **SearchBar query `GET /search/tracks` thật** (debounce 300ms → React Query, suggestion từ kết quả live). Auth nối thật. `/playlist/*` **đã gate bắt login** (middleware). Chỉ Home feed còn dùng mock. |
-| **Backend** | `auth` (JWT + OAuth2 Google qua Gateway, login/logout/register, Kafka basic) + `playlist` (LexoRank: add/get track, reorder, rebalance async; **có metadata Playlist** + GET list/detail + seed) + `track` (catalog metadata CRUD + batch GET + **list-all `GET /tracks`**, **phase 2: MinIO upload + streaming byte-range**, **Kafka publish Track events**) + **`search` (port 8086, Elasticsearch: index `tracks`, consumer Kafka + bootstrap reindex, `GET /search/tracks`)**. `user`-service vẫn **Backlog** (xem `domain.md`). |
-| **Gateway** | Spring Cloud Gateway — route auth 8081 / playlist 8084 / track 8085 / **search 8086** + JWT validation filter (certs). |
+| **Frontend** | UI theo Figma (Home, Playlist, Header-search, Player, token system, unified scrollbar). Đã **nối API thật** qua Gateway: playlist metadata (`GET /playlists`, `/playlists/{id}`, `/playlists/{id}/tracks`), track metadata batch (`GET /tracks?ids=`), **Player phát audio từ MinIO** (`/tracks/{id}/audio` streaming, byte-range seek), **SearchBar query `GET /search/tracks` thật** (debounce 300ms → React Query, suggestion từ kết quả live). **Auth hoàn thiện (Auth Completion):** login **bước 2 TOTP** (mfaToken memory-only, ADR D3), forgot/reset-password page thật, verify-email page, **/account** (profile + avatar URL text-only + email-verify banner/resend + 2FA enroll QR/verify/disable), BootstrapAuth `/me` revalidate (ADR D7). `/playlist/*` + `/account` **đã gate bắt login** (middleware). |
+| **Backend** | `auth` (JWT + OAuth2 Google qua Gateway, login/logout/register, **TOTP 2FA local**, **PATCH /me profile**, **email verification auto-send**, **forgot/reset password**, cookie factory thống nhất ADR D5, Kafka basic) + `playlist` (LexoRank: add/get track, reorder, rebalance async; **có metadata Playlist** + GET list/detail + seed) + `track` (catalog metadata CRUD + batch GET + **list-all `GET /tracks`**, **phase 2: MinIO upload + streaming byte-range**, **Kafka publish Track events**) + **`search` (port 8086, Elasticsearch: index `tracks`, consumer Kafka + bootstrap reindex, `GET /search/tracks`)**. `user`-service vẫn **Backlog** (xem `domain.md`). |
+| **Gateway** | Spring Cloud Gateway — route auth 8081 / playlist 8084 / track 8085 / **search 8086** + JWT validation filter (certs) + **permitAll 5 public auth routes** (forgot/reset/send-verification/verify-email/2fa-verify-login). |
 
 ## Frontend inventory
 
 ### Routes (`frontend/app/`)
 - `/` — Home feed (container-query grid)
 - `/playlist/[id]` — màn playlist, dữ liệu **thật** (playlist-service metadata + track-service batch GET, join theo lexoRank)
-- `/login`, `/register`, `/forgot-password`, `/oauth2/callback`
+- `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth2/callback`, **`/account`** (profile + 2FA + email banner)
 - `error.tsx` / `loading.tsx` / `not-found.tsx` — App Router chuẩn
 - **Gating:** `middleware.ts` — chỉ `/` + trang auth là public; chưa có `auth-token` cookie → redirect `/login` (playlist không còn là demo page, backend yêu cầu JWT)
 - **Không còn route `/search`** — SearchBar sống trên header TopNav
@@ -48,14 +49,17 @@
 - `lib/adapters.ts` — map DTO backend → `TrackItem`/`Playlist`/store `Track` (durationMs→s, cover fallback, formatDuration)
 - `lib/api-client.ts` — axios instance: baseURL Gateway (`/api/v1`), envelope `ApiResponse<T>` + `unwrap()`, `resolveApiUrl()`, **refresh-token flow** (401 → `/auth/refresh`, queue các request chờ, clearAuth logout)
 - `services/search/searchService.ts` — logic search thuần (giữ nguyên — pure); **SearchBar không còn dùng `TRACK_INDEX`** (spec §7)
-- `services/api/authService.ts` — auth qua Gateway
-- Vitest: **28 test xanh** (search-logic 11, SearchBar 7, services/api searchService 3, PlayerProgress 3, usePlayerStore 4)
+- `services/api/authService.ts` — auth qua Gateway (login/register/me/refresh/logout + reset/verify/profile/2FA methods, envelope không unwrap)
+- `hooks/useAuth.ts` + `useAuthStore.ts` — granular selectors; hooks: useLogin (mfaRequired early-return ADR D3), useRegister (toast verify-email D6), reset/verify/profile/2FA hooks + `useBootstrapAuth` (revalidate `/me`)
+- `lib/validation/auth.ts` — validateEmail/Password/ConfirmPassword/DisplayName/TotpCode (pure)
+- Vitest: **47 test xanh** (search-logic 11, SearchBar 7, services/api searchService 3 + authService 10, PlayerProgress 3, usePlayerStore 4, useAuth 3, validation/auth 10 ⇒ 47)
 
 ## Backend inventory
 
 ### `backend/` — **Maven multi-module** (chuyển từ monolith → microservices, 2026-08-29)
 - `common-lib` — `ApiResponse`, `GlobalResponseWrapper`, `GatewayHeaderFilter`, `ServiceSecurityConfig` (jar chia sẻ)
 - `auth-service` (port **8081**) — Clean Arch: domain / application (usecase, port) / infrastructure (persistence, security **oauth2**, **TOTP 2FA**, messaging **Kafka**, Redis session) / presentation (controller)
+  - **Auth Completion (2026-08-30→31):** domain `User` TOTP secret + `storePendingTotpSecret/enable/disable`; application: Forgot/Reset password usecase, VerifyTwoFactorSetup (enroll QR, ADR D2: save-secret-then-enable), VerifyTwoFactorLogin (2-step login, single-use mfaToken Redis, ADR D3), UpdateProfile + GetCurrentUser enrich (`emailVerified`/`twoFactorEnabled`), RegisterUseCase **auto-send verification email** (D6); presentation: `POST /auth/forgot-password`, `/reset-password`, `/send-verification`, `/verify-email`, `PATCH /me`, `/2fa/enroll|verify|disable`, `/2fa/verify-login`; **`AuthCookieFactory`** thống nhất path/domain 2 cookie (ADR D5); 2FA brute-force guard (Redis counter) + audit SecurityAuditPublisher; **Test: 39 xanh** (User 4, Email 3, Password 5, Login 4, Register 3, Enroll 3, Verify2faSetup 3, Verify2faLogin 3, Disable 2, UpdateProfile 4, GetCurrentUser 1, TotpAdapter 4)
 - `track-service` (port **8085**) — Clean Arch: domain (`Track`, `TrackAudioFile`, `TrackAudioRange`, events, `TrackRepository`/`TrackAudioRepository` port) / application (Create/GetByIds-batch/Update/List-all/**UploadAudio/GetAudio** usecase) / infrastructure (JPA adapter/mapper, **MinIO client**, **Kafka publisher**, exception handler) / presentation (controller)
   - Metadata endpoints: `POST`/`PUT` `/api/v1/tracks`, `GET /api/v1/tracks/{id}`, `GET /api/v1/tracks?ids=a,b,c` (giữ thứ tự input) + **`GET /api/v1/tracks` list-all** (cho search-service bootstrap reindex; permitAll riêng `@Order(1)`) — DB `track_db`:5434, schema via Flyway `V1__init_track_schema` + `V2__seed_tracks.sql` (6 track cố định, `audio_url` → streaming endpoint)
   - **Phase 2 MinIO (2026-08-29):** `TrackAudioController` — `PUT /api/v1/tracks/{trackId}/audio` (upload MultipartFile → MinIO bucket `tracks`) + `GET .../audio` (**streaming HTTP byte-range** `Accept-Ranges/Content-Range`, seek được trong browser). Seed volatile vào MinIO lúc boot bởi `TrackAudioSeedInitializer`. Cấu hình `MinioConfig` (env `MINIO_*`, endpoint `:9010`)
@@ -101,7 +105,8 @@
    - Tests: FE 26 xanh, backend **64 xanh** (common-lib 5, auth 13, playlist 27, track 19)
 8. 🟡 **Smoke test E2E qua cổng 9000** — docker-compose **mới gồm MinIO + track-db + Elasticsearch**, verify: login → list playlist → mở `/playlist/{id}` → **Player phát audio MinIO thật + seek** + **SearchBar result từ API thật** (luồng E2E thủ công chưa chạy trong phiên — xem checklist spec §9)
 9. ✅ **search-service Elasticsearch (2026-08-30)**: ES 8.15.3 compose, search-service 8086 (domain/application/infrastructure/presentation), consumer Kafka `spotify.track.events`, bootstrap reindex `GET /tracks`, `GET /api/v1/search/tracks` endpoint, gateway route, FE SearchBar nối API thật (debounce 300ms). Backend gate: **common-lib 7 + auth 13 + playlist 27 + track 26 + search 16 = 89 xanh**; FE 28 xanh
-10. (Sau) user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
+10. ✅ **Auth Completion (2026-08-30→31)** — reset password, email verification, profile/account, TOTP 2FA (**đã merge `feature/auth-completion` → main**, 20 commits, ff-only): backend auth **39 test xanh**, gateway permitAll 5 routes + cookie factory ADR D5, FE **47 test xanh** (tsc/lint/build green), pages login 2FA / reset-password / verify-email / account + BootstrapAuth. **Deferred minors (final review, sẽ triage trong phase sau):** xem ledger `.superpowers/sdd/2026-08-30-auth-completion/progress.md` (Task 1 _When_ casing/EOF newlines, Task 2 QR magic-byte/null-check, Task 3 /me divergence, Task 5 Redis-tx ordering, Task 6 dead stub, Task 7 baseUrl prod, Task 10 3 untested void wrappers, Task 11 password trim asym, Task 12 useVerify2faLogin store flags, Task 16 2FA-enable store refresh).
+11. (Sau) user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
 
 ## Cách dùng
 - **AI:** đọc file này khi bắt đầu mọi task/session; khi kết thúc milestone → **cập nhật** giai đoạn + inventory + next actions.

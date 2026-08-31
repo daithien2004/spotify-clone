@@ -20,7 +20,7 @@ Repos vật lý: `backend/pom.xml` (parent) → `common-lib`, `auth-service`, `p
 
 | Service | Status | Responsibility |
 |---|---|---|
-| `auth-service` | ✅ `backend/auth-service/` | Authentication, JWT, OAuth2, TOTP 2FA |
+| `auth-service` | ✅ `backend/auth-service/` | Authentication, JWT, OAuth2, **TOTP 2FA local**, **profile PATCH /me**, **email verification auto-send**, forgot/reset password |
 | `playlist-service` | ✅ `backend/playlist-service/` (port **8084**) | Playlist metadata + track ordering (LexoRank), add/get/reorder/rebalance |
 | `common-lib` | ✅ `backend/common-lib/` | ApiResponse envelope, GatewayHeaderFilter, ServiceSecurityConfig |
 | `user-service` | 🔴 Backlog | User profiles, follows |
