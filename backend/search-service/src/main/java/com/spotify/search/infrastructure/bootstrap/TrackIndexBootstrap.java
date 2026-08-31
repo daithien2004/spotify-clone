@@ -31,6 +31,9 @@ public class TrackIndexBootstrap implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
+            // ES index may not exist yet on a fresh box — ensure it before the first index/search,
+            // otherwise both throw index_not_found. Idempotent (checks existence first).
+            trackSearchRepository.ensureIndex();
             var tracks = fetcher.fetchAll();
             log.info("Bootstrap: indexing {} tracks from track-service", tracks.size());
             for (TrackPayload payload : tracks) {

@@ -61,7 +61,10 @@ public class TrackAudioController {
             HttpRange range = firstSingleRange(rangeHeader);
             if (range != null) {
                 offset = range.getRangeStart(0);
-                length = range.getRangeEnd(0) - offset + 1;
+                // Pass MAX_VALUE as the size hint: getRangeEnd(size) clamps end to min(maxEnd, size-1),
+                // so getRangeEnd(0) → -1 → length 0 → MinIO rejects .length(0) with
+                // "length should be greater than zero". MAX_VALUE keeps the requested bounded end.
+                length = range.getRangeEnd(Long.MAX_VALUE) - offset + 1;
             }
         }
 

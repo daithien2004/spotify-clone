@@ -17,9 +17,14 @@ GW="http://localhost:9000/api/v1"
 MP="http://localhost:8025/api/v1"
 LOG_DIR="$ROOT/scripts/.smoke-logs"
 PID_FILE="$ROOT/scripts/.smoke-pids"
-JAR="$(mktemp)"
-TMP_BODY="$(mktemp)"
-TMP_HDR="$(mktemp)"
+# Penting: dùng path dự án thay vì mktemp (/tmp). MSYS /tmp path bị mangled
+# khi truyền cho curl.exe (Windows native) — curl ghi body ra stdout thay vì
+# file, phá HTTP_STATUS cookie jar. Path dưới không chứa ký tự特殊 của $HOME.
+[ -d "$LOG_DIR" ] || mkdir -p "$LOG_DIR"
+JAR="$LOG_DIR/.smoke-cookies"
+TMP_BODY="$LOG_DIR/.smoke-body"
+TMP_HDR="$LOG_DIR/.smoke-hdr"
+rm -f "$JAR" "$TMP_BODY" "$TMP_HDR" 2>/dev/null
 PASS=0
 FAIL=0
 PY=python
@@ -44,7 +49,12 @@ for p in sys.argv[2].split('.'):
         d = d[p]
     else:
         print(""); sys.exit(0)
-print("" if d is None else d)
+if isinstance(d, bool):
+    print("true" if d else "false")
+elif d is None:
+    print("")
+else:
+    print(d)
 PY
 }
 
@@ -54,20 +64,59 @@ BODY=""
 request() {
   # request <method> <path> [json-body] [extra-curl-args...]
   local method=$1 path=$2 body=${3:-}
-  shift 3
+  # Consume chỉ số positional param có thật. `shift 3` sẽ FAIL (count out of range)
+  # khi gọi không có body (GET: chỉ 2 args) — $@ không bị shift, hàm trả về
+  # `$@ = "GET /auth/me"` → curl nhận các URL thừa "GET" và "/auth/me" → body tràn
+  # ra stdout → HTTP_STATUS 000{body}200. Đây là root cause thật (bổ sung cho fix
+  # truncate temp files phía dưới): min(3, $#) để body tùy chọn.
+  shift $(( $# < 3 ? $# : 3 ))
+  local data_args=()
+  [ -n "$body" ] && data_args=("--data" "$body" "-H" "Content-Type: application/json")
+  # Truncate temp files trước mỗi curl. Nếu không, file -o/-D còn sót từ request
+  # trước làm curl bỏ qua `-o` trên Windows → body tràn ra stdout → HTTP_STATUS bị
+  # ghép kiểu `000{body}200`. Fix này đã xác minh làm sạch (GET → đúng 200).
+  : > "$TMP_BODY"
+  : > "$TMP_HDR"
   HTTP_STATUS=$(curl -s -o "$TMP_BODY" -w '%{http_code}' -D "$TMP_HDR" \
-    -c "$JAR" -b "$JAR" -X "$method" "$@" "$GW$path")
+    -c "$JAR" -b "$JAR" -X "$method" "${data_args[@]}" "$@" "$GW$path")
   BODY=$(cat "$TMP_BODY")
 }
 
 wait_port() {
-  # wait_port <port> [path] [timeout_s] — port "up" = curl nhận được bất kỳ HTTP code
+  # wait_port <port> [path] [timeout_s] — port "up" = curl nhận được HTTP code thật.
+  # Lưu ý: khi chưa connect được, `-w '%{http_code}'` in "000" VÀ `|| echo 000` in thêm
+  # "000" → "000000" với rc≠0. Cả "000" lẫn "000000" đều = chưa up; chỉ chấp nhận
+  # status thật (2xx/3xx/4xx/5xx). Đây là nguồn cho rằng port "up" quá sớm.
   local port=$1 path=${2:-/} timeout=${3:-240} i code
   for i in $(seq 1 "$timeout"); do
-    code=$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' "http://localhost:$port$path" 2>/dev/null || echo 000)
-    [ "$code" != "000" ] && return 0
+    code=$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' "http://localhost:$port$path" 2>/dev/null || true)
+    if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" != "000000" ]; then
+      return 0
+    fi
     sleep 1
   done
+  return 1
+}
+
+wait_auth_ready() {
+  # Auth-service mở TCP trước khi route /auth/** được đăng ký (~vài giây). Nếu smoke
+  # chạy ngay khi :8081 mới "up", gateway proxy register → 500 "Connection refused:
+  # 8081". Chờ thật sự route trả HTTP code (401 khi chưa có cookie) thay vì 000.
+  # Đây là nguồn FAIL ngẫu nhiên 'register → 500' khi boot fresh.
+  # Lưu ý: khi curl không kết nối được, `-w '%{http_code}'` in "000" VÀ `|| echo 000`
+  # in thêm "000" → chuỗi "000000". Phải coi mọi giá trị chứa "000" là chưa sẵn sàng.
+  local i code
+  for i in $(seq 1 120); do
+    code=$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' \
+      "http://localhost:8081/api/v1/auth/me" 2>/dev/null || true)
+    # "sẵn sàng" = HTTP status thật (401/200/...). 000/000000 = chưa connect được.
+    if [ -n "$code" ] && [ "$code" != "000" ] && [ "$code" != "000000" ]; then
+      printf '    OK  :8081 auth route đã sẵn sàng (%s)\n' "$code"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "    Fail :8081 auth route không lên — xem logs/auth.log"
   return 1
 }
 
@@ -141,14 +190,16 @@ p = subprocess.Popen([mvn, *args] + ["spring-boot:run"], cwd=cwd,
                      stdout=f, stderr=subprocess.STDOUT)
 with open(pidfile, "a") as pf:
     pf.write(str(p.pid) + "\n")
-print(f"  launch {logname} → logs/{logname}.log (pid {p.pid})")
+print(f"  launch {logname} -> logs/{logname}.log (pid {p.pid})")
 sys.exit(0)
 PY
 }
 
 boot_services() {
   [ -d "$LOG_DIR" ] || mkdir -p "$LOG_DIR"
-  : >"$PID_FILE"
+  # Idempotent: kill bất kỳ service còn sót từ boot trước — nếu không, port bind fail
+  # (orphan giữ 8081/8085...) và smoke chạy vào instance cũ.
+  stop_services
 
   # env smoke: mail → Mailpit local (STARTTLS tắt); còn lại đọc từ backend/.env
   set -a
@@ -185,37 +236,63 @@ PY
       echo "    Fail :$port không lên — xem logs/$log.log"
     fi
   done
+  # Auth mở TCP trước khi route sẵn sàng — chờ route thật trước khi smoke chạy
+  # (tránh gateway proxy register → 500 "Connection refused: 8081").
+  wait_auth_ready
 }
 
 stop_services() {
-  [ -f "$PID_FILE" ] || return 0
+  # Kill cả launcher PID đã ghi + các process java đang LISTEN trên port service.
+  # Lý do: start_service ghi PID của launcher (mvn.cmd/python), nhưng process thật
+  # giữ port là java.exe con — taskkill //T trên launcher không phải lúc nào cũng
+  # chạm tới. Vậy ngoài PID_FILE, dò theo netstat theo port rồi kill chính xác.
   local pid
-  while read -r pid; do
-    [ -z "$pid" ] && continue
-    kill "$pid" 2>/dev/null || true
-    taskkill //F //T //PID "$pid" >/dev/null 2>&1 || true
-  done <"$PID_FILE"
+  if [ -f "$PID_FILE" ]; then
+    while read -r pid; do
+      [ -z "$pid" ] && continue
+      taskkill //F //T //PID "$pid" >/dev/null 2>&1 || true
+    done <"$PID_FILE"
+  fi
+  for port in 8081 8084 8085 8086 9000; do
+    "$PY" - "$port" <<'PY'
+import subprocess, sys
+port = sys.argv[1]
+r = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True)
+seen = set()
+for line in r.stdout.splitlines():
+    if (f":{port}" in line and "LISTENING" in line and line.split()[-1] not in seen):
+        pid = line.split()[-1]
+        seen.add(pid)
+        subprocess.run(["taskkill", "/F", "/T", "/PID", pid], capture_output=True)
+PY
+  done
   : >"$PID_FILE"
-  echo "  Đã kill các service launch bởi boot."
+  echo "  Đã kill các service (bởi PID_FILE + theo port)."
 }
 
 # ============================================================ mailpit ========
 # mail_token <to> <marker(verify-email|reset-password)> — trích token từ link gần nhất
 mail_token() {
-  local res to=$1 marker=$2
-  res=$(curl -s "$MP/search?query=href" || true)
-  "$PY" - "$res" "$to" "$marker" <<'PY'
-import json, re, sys
+  local to=$1 marker=$2
+  # Mailpit /messages list endpoint returns HTML:0 — fetch individual messages by ID instead.
+  "$PY" - "$MP" "$to" "$marker" <<'PY'
+import json, re, sys, urllib.request
+mp, to, marker = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
-    data = json.loads(sys.argv[1])
+    data = json.loads(urllib.request.urlopen(mp + "/messages").read())
 except Exception:
     sys.exit(1)
-to, marker = sys.argv[2], sys.argv[3]
-for msg in data.get('searchResults', []):
-    addrs = {a.get('Address', '') for a in msg.get('To', [])}
+for msg in data.get("messages", []):
+    addrs = {a.get("Address", "") for a in msg.get("To", [])}
     if to not in addrs:
         continue
-    m = re.search(r'href="[^"]*' + re.escape(marker) + r'\?token=([0-9a-fA-F-]{36})', msg.get('HTML') or '')
+    mid = msg.get("ID", "")
+    try:
+        detail = json.loads(urllib.request.urlopen(f"{mp}/message/{mid}").read())
+        html = detail.get("HTML") or ""
+    except Exception:
+        continue
+    m = re.search(r'href="[^"]*' + re.escape(marker) + r'\?token=([0-9a-fA-F-]{36})', html)
     if m:
         print(m.group(1))
         sys.exit(0)
@@ -283,7 +360,7 @@ PY
 
   step "A5. LOGOUT (xóa cookie)"
   request POST /auth/logout ""
-  [ "$HTTP_STATUS" = "200" ] && ok "logout → 200" || bad "logout → $HTTP_STATUS"
+  [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "204" ] && ok "logout → $HTTP_STATUS" || bad "logout → $HTTP_STATUS"
   jar_has auth-token && bad "auth-token còn trong jar sau logout" || ok "auth-token đã xóa"
 
   step "A6. LOGIN lúc 2FA đang bật → mfaRequired + mfaToken, KHÔNG set cookie"

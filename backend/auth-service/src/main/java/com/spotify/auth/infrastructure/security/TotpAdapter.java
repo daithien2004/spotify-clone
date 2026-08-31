@@ -5,6 +5,7 @@ import dev.samstevens.totp.qr.QrData;
 import dev.samstevens.totp.qr.QrGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import com.spotify.auth.application.port.out.TotpPort;
 
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /** Adapter TOTP — wrap SecretGenerator/CodeVerifier/QrGenerator (beans TotpConfig). */
+@Component
 @RequiredArgsConstructor
 public class TotpAdapter implements TotpPort {
 

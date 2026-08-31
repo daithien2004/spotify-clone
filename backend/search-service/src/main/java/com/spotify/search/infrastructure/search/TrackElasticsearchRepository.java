@@ -24,7 +24,7 @@ public class TrackElasticsearchRepository implements TrackSearchRepository {
 
     private final ElasticsearchClient client;
 
-    /** Creates the index with the spec mapping when missing — safe to call on every startup. */
+    @Override
     public void ensureIndex() {
         try {
             boolean exists = client.indices().exists(e -> e.index(ElasticsearchConfig.TRACK_INDEX)).value();
