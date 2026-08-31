@@ -3,7 +3,12 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
+  const isAuthPage =
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/register') ||
+    request.nextUrl.pathname.startsWith('/forgot-password') ||
+    request.nextUrl.pathname.startsWith('/reset-password') ||
+    request.nextUrl.pathname.startsWith('/verify-email');
   // Playlist không còn là demo page — backend yêu cầu JWT nên cần login.
   const isPublicPage = request.nextUrl.pathname === '/' || isAuthPage;
 
