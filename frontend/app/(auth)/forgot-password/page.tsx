@@ -1,52 +1,67 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useForgotPassword } from "@/hooks/useAuth";
+import { validateEmail } from "@/lib/validation/auth";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const forgotMutation = useForgotPassword();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validateEmail(email);
+    if (err) return toast.error(err);
+    forgotMutation.mutate(email, {
+      onError: (error) =>
+        toast.error("Failed to send reset email", {
+          description: error.message || "Please try again.",
+        }),
+      onSuccess: () => setSent(true),
+    });
+  };
+
   return (
-    <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <div className="w-full">
-        <Link 
-          href="/login" 
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
-        >
-          <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back to log in</span>
-        </Link>
-      </div>
-
-      <div className="space-y-2 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-foreground">
-          Reset your password
-        </h1>
-        <p className="text-muted-foreground">
-          Enter your email and we&apos;ll send you instructions to reset your password.
-        </p>
-      </div>
-
-      <form className="w-full space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-bold text-foreground">
-            Email address
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            required
-            className="h-12 bg-background border-border hover:border-foreground focus:border-foreground focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground transition-all rounded-[4px]"
-          />
+    <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 transition-colors">
+      <h1 className="text-4xl md:text-5xl font-bold text-center tracking-tighter text-foreground mb-2 leading-tight">
+        Reset your password
+      </h1>
+      {sent ? (
+        <div className="w-full space-y-4 text-center">
+          <p className="text-muted-foreground">
+            If {email} is registered, we sent a reset link. Check your inbox and pick up where you left off.
+          </p>
+          <Button asChild className="w-full bg-spotify-green hover:opacity-90 text-black font-bold h-12 rounded-full">
+            <Link href="/login">Back to login</Link>
+          </Button>
         </div>
-
-        <Button
-          className="w-full bg-spotify-green hover:opacity-90 text-black font-bold h-12 rounded-full transition-transform active:scale-[0.98]"
-          type="submit"
-        >
-          Send request
-        </Button>
-      </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="w-full space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-bold text-foreground">Email</Label>
+            <Input
+              id="email" type="email" placeholder="name@example.com" required
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              className="h-12 bg-background border-border hover:border-foreground focus:border-foreground text-foreground placeholder:text-muted-foreground rounded-[4px]"
+            />
+          </div>
+          <Button className="w-full bg-spotify-green hover:opacity-90 text-black font-bold h-12 rounded-full" type="submit" disabled={forgotMutation.isPending}>
+            {forgotMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send reset link"}
+          </Button>
+          <div className="text-center">
+            <Link href="/login" className="text-sm text-foreground hover:text-spotify-green underline underline-offset-4 decoration-border">
+              Back to login
+            </Link>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

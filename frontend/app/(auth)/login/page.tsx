@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLogin } from "@/hooks/useAuth";
+import { useLogin, useVerify2faLogin } from "@/hooks/useAuth";
+import { validateTotpCode } from "@/lib/validation/auth";
 import { Loader2 } from "lucide-react";
 import { SocialButton } from "@/components/auth/SocialButton";
 import { toast } from "sonner";
@@ -15,7 +16,33 @@ const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:900
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const loginMutation = useLogin();
+  const verify2faLogin = useVerify2faLogin();
+
+  // Khi login trả mfaRequired → chuyển sang bước nhập 6 chữ số (giữ mfaToken trong memory — không persist)
+  useEffect(() => {
+    if (loginMutation.data?.mfaRequired && loginMutation.data.mfaToken) {
+      setMfaToken(loginMutation.data.mfaToken);
+    }
+  }, [loginMutation.data]);
+
+  const handleVerify2fa = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validateTotpCode(code);
+    if (err) return toast.error(err);
+    if (!mfaToken) return toast.error("Session expired — log in again.");
+    verify2faLogin.mutate(
+      { mfaToken, code },
+      {
+        onError: (error) =>
+          toast.error("Verification failed", {
+            description: error.message || "Enter the 6-digit code from your app.",
+          }),
+      }
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +63,38 @@ export default function LoginPage() {
     // Redirect to Gateway OAuth2 (Google) — toàn trang để nhận HttpOnly session cookie.
     window.location.href = `${GATEWAY_URL}/oauth2/authorization/google`;
   };
+
+  if (mfaToken) {
+    return (
+      <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 transition-colors">
+        <h1 className="text-4xl md:text-5xl font-bold text-center tracking-tighter text-foreground mb-2 leading-tight">
+          Two-factor authentication
+        </h1>
+        <p className="text-muted-foreground text-sm text-center">
+          Enter the 6-digit code from your authenticator app.
+        </p>
+        <form onSubmit={handleVerify2fa} className="w-full space-y-6">
+          <Input
+            id="2fa-code"
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="123456"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            className="h-14 bg-background border-border text-foreground text-center text-2xl tracking-[0.5em] placeholder:text-muted-foreground rounded-[4px]"
+          />
+          <Button
+            className="w-full bg-spotify-green hover:opacity-90 text-black font-bold h-12 rounded-full transition-transform active:scale-[0.98] disabled:opacity-70"
+            type="submit"
+            disabled={verify2faLogin.isPending}
+          >
+            {verify2faLogin.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify"}
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center w-full max-w-[450px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 transition-colors">
