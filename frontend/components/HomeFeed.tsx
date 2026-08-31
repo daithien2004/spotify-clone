@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HOME_SECTIONS } from "@/lib/musicData";
 import { queryKeys } from "@/lib/queryKeys";
+import { useIsAuthenticated } from "@/hooks/useAuth";
+import { HomeService } from "@/services/api/homeService";
 import { SectionHeader } from "./SectionHeader";
 import { MusicCard } from "./MusicCard";
 
@@ -15,12 +17,18 @@ function greeting(): string {
 }
 
 export default function HomeFeed() {
-  // Data đã được prefetch trên server (app/(main)/page.tsx).
+  const isAuthenticated = useIsAuthenticated();
+
+  // Home public (middleware) nhưng data thật cần JWT → chỉ fetch khi đã login
+  // để tránh 401 → api-client redirect login. Fallback mock khi chưa login/lỗi.
   const { data: sections } = useQuery({
     queryKey: queryKeys.home.sections(),
-    queryFn: async () => HOME_SECTIONS,
-    initialData: HOME_SECTIONS, // Fallback an toàn nếu hydration trễ.
+    queryFn: () => HomeService.getHomeSections(),
+    enabled: isAuthenticated,
+    placeholderData: HOME_SECTIONS,
   });
+
+  const resolved = sections?.length ? sections : HOME_SECTIONS;
 
   return (
     <ScrollArea className="@container h-full overflow-hidden rounded-[4px] bg-bg-secondary shadow-2xl ring-1 ring-inset ring-border-feed">
@@ -29,7 +37,7 @@ export default function HomeFeed() {
           {greeting()}
         </h1>
 
-        {sections?.map((section) => (
+        {resolved.map((section) => (
           <section key={section.title} className="space-y-4">
             <SectionHeader
               title={section.title}
@@ -46,6 +54,7 @@ export default function HomeFeed() {
                   imageUrl={item.imageUrl}
                   priority={index < 2}
                   variant={item.variant}
+                  href={item.type === "Playlist" ? `/playlist/${item.id}` : undefined}
                 />
               ))}
             </div>

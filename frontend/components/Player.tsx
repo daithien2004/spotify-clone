@@ -40,13 +40,14 @@ export function Player() {
     : null;
 
   // Đổi src khi chuyển track (audio hidden; data-src để tránh set lại vô ích).
+  // Không reset realDuration ngay đây (violate react-hooks/set-state-in-effect):
+  // browser fire onLoadStart khi src đổi → reset tại event handler.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     if (audioUrl && el.dataset.src !== currentTrack?.audioUrl) {
       el.dataset.src = currentTrack?.audioUrl;
       el.src = audioUrl;
-      setRealDuration(null);
     }
   }, [audioUrl, currentTrack?.audioUrl]);
 
@@ -81,6 +82,7 @@ export function Player() {
         ref={audioRef}
         className="hidden"
         preload="metadata"
+        onLoadStart={() => setRealDuration(null)}
         onTimeUpdate={() => {
           const el = audioRef.current;
           if (el && Number.isFinite(el.duration) && el.duration > 0) {

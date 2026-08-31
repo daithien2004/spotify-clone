@@ -36,7 +36,7 @@ interface PlayerState {
 
 export const usePlayerStore = create<PlayerState>()(
   persist(
-    (set, getState) => ({
+    (set) => ({
       isPlaying: false,
       currentTrack: null,
       volume: 0.7,

@@ -14,4 +14,10 @@ export class TrackService {
     );
     return unwrap(envelope);
   }
+
+  /** GET /tracks — list tất cả tracks (Home feed "Trending tracks", seed 6). */
+  static async listTracks(): Promise<TrackResponse[]> {
+    const envelope = await api.get<ApiResponse<TrackResponse[]>>("/tracks");
+    return unwrap(envelope);
+  }
 }
