@@ -6,6 +6,8 @@ export interface User {
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  emailVerified?: boolean;
+  twoFactorEnabled?: boolean;
 }
 
 interface AuthState {
