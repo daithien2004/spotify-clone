@@ -9,6 +9,7 @@
 **Phase E: FE nối API thật (playlist/tracks/player) + backend track MinIO.**
 **Phase E+ (2026-08-30): search-service (Elasticsearch) — endpoint search + FE SearchBar nối API thật.**
 **Auth Completion (2026-08-30→31): hoàn thiện auth FE+BE — reset password, email verification, profile/account, TOTP 2FA.**
+**Smoke Testing Tooling (2026-08-31): TOTP helper (`scripts/totp.mjs`) + `scripts/smoke-auth.sh` + Mailpit + Playwright E2E dựng xong & verify đơn vị; runtime full-stack đang chờ Docker Desktop.**
 
 | Phía | Trạng thái |
 |---|---|
@@ -52,7 +53,8 @@
 - `services/api/authService.ts` — auth qua Gateway (login/register/me/refresh/logout + reset/verify/profile/2FA methods, envelope không unwrap)
 - `hooks/useAuth.ts` + `useAuthStore.ts` — granular selectors; hooks: useLogin (mfaRequired early-return ADR D3), useRegister (toast verify-email D6), reset/verify/profile/2FA hooks + `useBootstrapAuth` (revalidate `/me`)
 - `lib/validation/auth.ts` — validateEmail/Password/ConfirmPassword/DisplayName/TotpCode (pure)
-- Vitest: **47 test xanh** (search-logic 11, SearchBar 7, services/api searchService 3 + authService 10, PlayerProgress 3, usePlayerStore 4, useAuth 3, validation/auth 10 ⇒ 47)
+- Vitest: **53 test xanh (9 test files)** (search-logic, SearchBar, services/api searchService + authService, PlayerProgress, usePlayerStore, useAuth, validation/auth)
+- **Playwright E2E (2026-08-31):** `frontend/e2e/` — `gating.spec.ts` (2 test: `/account`, `/playlist/[id]` bị redirect `/login` khi chưa login — chỉ cần FE dev server, **xanh trên chromium thật**) + `auth.spec.ts` (full-stack: register API→verify email từ Mailpit→UI login→`/account` displayName; + 2FA login flow; chạy khi `E2E_FULL=1`, tự skip nếu thiếu env). `playwright.config.ts` (webServer `npm run dev` tự khởi động), chromium đã cài (`npx playwright install chromium`), `npm run test:e2e`
 
 ## Backend inventory
 
@@ -76,7 +78,7 @@
   - Error contract (convention §2): `GlobalExceptionHandler` (`infrastructure/exception/`) → 400/500, body `ApiResponse.error(...)`; `@Valid` + `@NotNull`
   - **Test: 27 xanh** (LexoRank 8, Scheduler 2, AddTrack 5, Reorder 5, GetPlaylistById 2, GetTracks 2, ListPlaylists 2, Rebalance 1)
 - **Database-per-service:** `auth_db` (5432) + `playlist_db` (5433) + **`track_db` (5434)** trong `docker-compose.yml` (migrations consolidated 2026-08-29: mỗi service đánh số riêng — auth gộp V1-V4,V6 + bỏ bảng dead `security_tokens`; playlist đổi tên V5 → V1, thêm V2 playlists + V3 seed; track V1 schema + V2 seed)
-- Infra môi trường: `docker-compose.yml` (**MinIO** `:9010`/console `:9011` bucket `tracks` + 3×Postgres `auth:5432`/`playlist:5433`/`track:5434` + Redis/Kafka/**kafka-ui `:8087`**/**Elasticsearch `:9200`** + volume `es_data`, 2026-08-30), `.env`
+- Infra môi trường: `docker-compose.yml` (**MinIO** `:9010`/console `:9011` bucket `tracks` + 3×Postgres `auth:5432`/`playlist:5433`/`track:5434` + Redis/Kafka/**kafka-ui `:8087`**/**Elasticsearch `:9200`** + volume `es_data`, 2026-08-30 + **Mailpit `:1025`/`:8025`** mail sink 2026-08-31), `.env`
 - `common` cũ: `GlobalExceptionHandler` + auth exception → về auth-service (common cũ từng import ngược auth — đã gỡ phụ thuộc). **`GlobalResponseWrapperTest` (5 test)** cho envelope
 
 ### `gateway/` — Spring Cloud Gateway
@@ -106,7 +108,8 @@
 8. 🟡 **Smoke test E2E qua cổng 9000** — docker-compose **mới gồm MinIO + track-db + Elasticsearch**, verify: login → list playlist → mở `/playlist/{id}` → **Player phát audio MinIO thật + seek** + **SearchBar result từ API thật** (luồng E2E thủ công chưa chạy trong phiên — xem checklist spec §9)
 9. ✅ **search-service Elasticsearch (2026-08-30)**: ES 8.15.3 compose, search-service 8086 (domain/application/infrastructure/presentation), consumer Kafka `spotify.track.events`, bootstrap reindex `GET /tracks`, `GET /api/v1/search/tracks` endpoint, gateway route, FE SearchBar nối API thật (debounce 300ms). Backend gate: **common-lib 7 + auth 13 + playlist 27 + track 26 + search 16 = 89 xanh**; FE 28 xanh
 10. ✅ **Auth Completion (2026-08-30→31)** — reset password, email verification, profile/account, TOTP 2FA (**đã merge `feature/auth-completion` → main**, 20 commits, ff-only): backend auth **39 test xanh**, gateway permitAll 5 routes + cookie factory ADR D5, FE **47 test xanh** (tsc/lint/build green), pages login 2FA / reset-password / verify-email / account + BootstrapAuth. **Deferred minors (final review, sẽ triage trong phase sau):** xem ledger `.superpowers/sdd/2026-08-30-auth-completion/progress.md` (Task 1 _When_ casing/EOF newlines, Task 2 QR magic-byte/null-check, Task 3 /me divergence, Task 5 Redis-tx ordering, Task 6 dead stub, Task 7 baseUrl prod, Task 10 3 untested void wrappers, Task 11 password trim asym, Task 12 useVerify2faLogin store flags, Task 16 2FA-enable store refresh).
-11. (Sau) user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
+11. 🟡 **Smoke-test tooling (2026-08-31)** — `scripts/totp.mjs` (TOTP RFC 6238, `node --test scripts/totp.test.mjs` 6/6), `scripts/smoke-auth.sh` (subcommand `boot|run|stop|all`: docker-compose + Mailpit + cài common-lib + 4 service + gateway qua python-spawn, poll readiness, chạy full flow A1-A8/B1/C1 qua cổng 9000 — register→verify-email (link từ Mailpit)→2FA enroll/TOTP→logout→login mfaRequired→verify-login→refresh + forgot/reset + dữ liệu thật playlists/tracks/search/audio Range 206), Mailpit trong compose, `application.yml` starttls env-overridable. **Runtime full-stack đang chờ bật Docker Desktop** — chạy `bash scripts/smoke-auth.sh` (tự báo "Docker Desktop chưa chạy") rồi `E2E_FULL=1 npm run test:e2e`. Backend `mvn test` xanh trên tree hiện tại (application.yml non-Java config edit).
+12. (Sau) user-service; track upload thật qua UI/FE + CDN/auth-cache cho streaming
 
 ## Cách dùng
 - **AI:** đọc file này khi bắt đầu mọi task/session; khi kết thúc milestone → **cập nhật** giai đoạn + inventory + next actions.

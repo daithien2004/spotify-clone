@@ -28,3 +28,11 @@ backend/src/main/resources/application-local.yml
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Playwright test artifacts
+frontend/test-results/
+frontend/playwright-report/
+
+# Smoke test runtime state (scripts/smoke-auth.sh)
+scripts/.smoke-logs/
+scripts/.smoke-pids

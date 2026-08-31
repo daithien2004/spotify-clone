@@ -107,6 +107,20 @@ services:
       - kafka
     restart: always
 
+  # Mail sink (SMTP :1025, web/API :8025) — dev + smoke test đọc verify/reset
+  # links qua API, không gửi Gmail thật. SMTP auth bỏ qua TLS (auth-service
+  # smoke chạy STRTTLS tắt) nên cần allow-insecure + accept-any.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: spotify_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+    restart: always
+
 volumes:
   auth_postgres_data:
   playlist_postgres_data:
