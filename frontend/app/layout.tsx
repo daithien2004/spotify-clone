@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { BootstrapAuth } from "@/components/providers/BootstrapAuth";
 import { Toaster } from "sonner";
 
 // Inter = typeface trong Figma design (400-800). Load trước để `--font-inter`
@@ -73,7 +74,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
-            {children}
+            <BootstrapAuth>{children}</BootstrapAuth>
             <Toaster position="top-center" richColors />
           </QueryProvider>
         </ThemeProvider>

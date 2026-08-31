@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,17 +16,13 @@ const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:900
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const loginMutation = useLogin();
   const verify2faLogin = useVerify2faLogin();
 
-  // Khi login trả mfaRequired → chuyển sang bước nhập 6 chữ số (giữ mfaToken trong memory — không persist)
-  useEffect(() => {
-    if (loginMutation.data?.mfaRequired && loginMutation.data.mfaToken) {
-      setMfaToken(loginMutation.data.mfaToken);
-    }
-  }, [loginMutation.data]);
+  // Derived từ kết quả login (ADR D3): mfaRequired → hiện bước nhập 6 chữ số.
+  // Token giữ trong memory của render — không persist, tự reset khi data login mới.
+  const mfaToken = loginMutation.data?.mfaRequired ? (loginMutation.data.mfaToken ?? null) : null;
 
   const handleVerify2fa = (e: React.FormEvent) => {
     e.preventDefault();

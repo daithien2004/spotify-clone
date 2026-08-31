@@ -98,17 +98,17 @@ export function TopNav() {
                 <span className="text-xs text-text-muted">{user?.email}</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="my-1 bg-border/50" />
-              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
-                Account
+              <DropdownMenuItem asChild className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                <Link href="/account">Account</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
-                Profile
+              <DropdownMenuItem asChild className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                <Link href="/account">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
                 Private session
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
-                Settings
+              <DropdownMenuItem asChild className="cursor-pointer rounded-md px-3 py-2.5 text-sm font-medium text-text-strong hover:bg-white/10">
+                <Link href="/account">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1 bg-border/50" />
               <DropdownMenuItem

@@ -12,15 +12,13 @@ type Status = "verifying" | "success" | "error";
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
-  const [status, setStatus] = useState<Status>("verifying");
+  // Thiếu token → error ngay từ initial state (tránh setState sync trong effect — lint gate)
+  const [status, setStatus] = useState<Status>(() => (token ? "verifying" : "error"));
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
+    if (!token) return;
     let cancelled = false;
-    if (!token) {
-      setStatus("error");
-      return;
-    }
     AuthService.verifyEmail(token)
       .then(() => { if (!cancelled) setStatus("success"); })
       .catch(() => { if (!cancelled) setStatus("error"); });
