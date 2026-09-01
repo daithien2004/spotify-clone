@@ -86,6 +86,11 @@ jwt:
 app:
   base-url: ${APP_BASE_URL:http://localhost:3000}
   cookie-domain: ${COOKIE_DOMAIN:localhost}
+  # Brute-force rate limit trên login/register (Bucket4j, per IP phút).
+  # Mặc định 10; môi trường smoke/E2E override cao hơn qua env APP_SECURITY_RATE_LIMIT_PER_MINUTE
+  # (full suite gộp nhiều register+login cùng IP sẽ vượt 10).
+  security:
+    rate-limit-per-minute: ${APP_SECURITY_RATE_LIMIT_PER_MINUTE:10}
 
 # ===== TOTP 2FA Config =====
 totp:

@@ -210,6 +210,9 @@ boot_services() {
   export MAIL_PASSWORD=mailpit
   export MAIL_STARTTLS_ENABLE=false
   export MAIL_STARTTLS_REQUIRED=false
+  # Smoke/E2E full suite gộp nhiều register+login cùng IP (127.0.0.1) trong 1 phút →
+  # vượt limit mặc định 10 → 429. Nâng limit cho môi trường test (production vẫn 10).
+  export APP_SECURITY_RATE_LIMIT_PER_MINUTE=100
   set +a
 
   MVN=$(find_mvn) || { echo "  Không tìm thấy Maven dist — chạy './mvnw' trước."; return 1; }
@@ -328,7 +331,8 @@ run_smoke() {
   step "A2. GET /me ban đầu (emailVerified=false)"
   request GET /auth/me
   [ "$HTTP_STATUS" = "200" ] && ok "/me → 200" || bad "/me → $HTTP_STATUS"
-  [ "$(json_get "$BODY" data.data.emailVerified)" = "false" ] && ok "emailVerified=false" || bad "emailVerified ≠ false (binh: $BODY)"
+  # /me trả single envelope {success,data:{id,...}} (đã fix double-wrap) → đọc data.emailVerified
+  [ "$(json_get "$BODY" data.emailVerified)" = "false" ] && ok "emailVerified=false" || bad "emailVerified ≠ false (binh: $BODY)"
 
   step "A3. VERIFY EMAIL qua link trong mailpit"
   VTOK=$(poll_token "$EMAIL1" verify-email 60)
@@ -337,7 +341,7 @@ run_smoke() {
     request POST /auth/verify-email "{\"token\":\"$VTOK\"}"
     [ "$HTTP_STATUS" = "200" ] && ok "verify-email → 200" || bad "verify-email → $HTTP_STATUS ($BODY)"
     request GET /auth/me
-    [ "$(json_get "$BODY" data.data.emailVerified)" = "true" ] && ok "/me sau verify → emailVerified=true" || bad "emailVerified vẫn ≠ true"
+    [ "$(json_get "$BODY" data.emailVerified)" = "true" ] && ok "/me sau verify → emailVerified=true" || bad "emailVerified vẫn ≠ true"
   fi
 
   step "A4. 2FA enroll → TOTP local → verify setup"
@@ -377,7 +381,7 @@ PY
   [ "$HTTP_STATUS" = "200" ] && ok "2fa/verify-login → 200" || bad "2fa/verify-login → $HTTP_STATUS ($BODY)"
   jar_has auth-token && ok "đã có auth-token sau verify-login" || bad "thiếu auth-token sau verify-login"
   request GET /auth/me
-  [ "$(json_get "$BODY" data.data.email)" = "$EMAIL1" ] && ok "/me đúng user sau 2FA" || bad "/me sai user"
+  [ "$(json_get "$BODY" data.email)" = "$EMAIL1" ] && ok "/me đúng user sau 2FA" || bad "/me sai user"
 
   step "A8. REFRESH (rotate refresh-token)"
   request POST /auth/refresh ""

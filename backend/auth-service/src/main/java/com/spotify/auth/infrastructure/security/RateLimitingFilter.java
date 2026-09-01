@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,10 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Rate Limiting Filter dùng Bucket4j (Token Bucket algorithm).
  * Bảo vệ endpoint Login và Register khỏi Brute Force attack.
- * 
- * Cấu hình: Tối đa 10 request / phút / IP cho các endpoint nhạy cảm.
+ *
+ * Cấu hình: mặc định 10 request / phút / IP cho các endpoint nhạy cảm. Có thể override
+ * qua property <code>app.security.rate-limit-per-minute</code> (vd. môi trường smoke/E2E
+ * chạy full suite gộp nhiều register+login cùng IP sẽ vượt 10 → nâng con số này).
  * Trong production: nên dùng Redis-backed Bucket cho multi-instance deployment.
- * 
+ *
  * Note: Đây là in-memory implementation. Với multi-pod Kubernetes,
  * cần upgrade lên bucket4j-redis để sync state qua Redis.
  */
@@ -33,14 +36,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     // In-memory buckets per IP (đủ tốt cho single-instance dev)
     private final Map<String, Bucket> ipBuckets = new ConcurrentHashMap<>();
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 10;
+    private final int maxRequestsPerMinute;
+
+    public RateLimitingFilter(
+            @Value("${app.security.rate-limit-per-minute:10}") int maxRequestsPerMinute) {
+        this.maxRequestsPerMinute = maxRequestsPerMinute;
+    }
 
     private Bucket getOrCreateBucket(String ip) {
         return ipBuckets.computeIfAbsent(ip, key ->
                 Bucket.builder()
                         .addLimit(Bandwidth.builder()
-                                .capacity(MAX_REQUESTS_PER_MINUTE)
-                                .refillGreedy(MAX_REQUESTS_PER_MINUTE, Duration.ofMinutes(1))
+                                .capacity(maxRequestsPerMinute)
+                                .refillGreedy(maxRequestsPerMinute, Duration.ofMinutes(1))
                                 .build())
                         .build()
         );

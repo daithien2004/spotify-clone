@@ -12,6 +12,7 @@ import {
   useDisable2fa,
   useResendVerification,
 } from "@/hooks/useAuth";
+import type { User } from "@/hooks/useAuthStore";
 import { validateDisplayName, validateTotpCode } from "@/lib/validation/auth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -22,14 +23,11 @@ export default function AccountPage() {
   const emailVerified = user?.emailVerified ?? true;
   const twoFactorEnabled = user?.twoFactorEnabled ?? false;
 
-  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? "");
   const [qr, setQr] = useState<{ otpauthUrl: string; qrDataUri: string } | null>(null);
   const [code, setCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
   const [resendSent, setResendSent] = useState(false);
 
-  const profileMutation = useUpdateProfile();
   const enrollMutation = useEnroll2fa();
   const verifySetupMutation = useVerify2faSetup(() => {
     setQr(null);
@@ -41,19 +39,6 @@ export default function AccountPage() {
     toast.success("Two-factor authentication disabled");
   });
   const resendMutation = useResendVerification(user?.email ?? "");
-
-  const handleProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    const err = validateDisplayName(displayName);
-    if (err) return toast.error(err);
-    profileMutation.mutate(
-      { displayName: displayName.trim(), avatarUrl: avatarUrl.trim() || null },
-      {
-        onSuccess: () => toast.success("Profile updated"),
-        onError: (error) => toast.error("Update failed", { description: error.message || "Please try again." }),
-      }
-    );
-  };
 
   const handleEnroll = () => {
     enrollMutation.mutate(undefined, {
@@ -105,29 +90,12 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* Profile form */}
-      <section className="space-y-4 rounded-lg border border-border bg-background p-6">
-        <h2 className="text-lg font-bold text-foreground">Profile</h2>
-        <form onSubmit={handleProfile} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="displayName" className="text-sm font-bold text-foreground">Display name</Label>
-            <Input id="displayName" value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="h-11 bg-background border-border text-foreground rounded-[4px]" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="avatarUrl" className="text-sm font-bold text-foreground">Avatar URL</Label>
-            <Input id="avatarUrl" type="url" placeholder="https://example.com/avatar.png" value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              className="h-11 bg-background border-border text-foreground rounded-[4px]" />
-            <p className="text-xs text-muted-foreground">Image URL text — no file upload (đã chốt scope).</p>
-          </div>
-          <Button type="submit" disabled={profileMutation.isPending}
-            className="bg-spotify-green hover:opacity-90 text-black font-bold h-10 rounded-full px-6">
-            {profileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save changes"}
-          </Button>
-        </form>
-      </section>
+      {/* Profile form — keyed by user id để remount đồng bộ khi user load async
+          (persist rehydrate / BootstrapAuth /me), useState khởi tạo lại đúng giá trị. */}
+      <ProfileForm
+        key={user?.id ?? "anon"}
+        user={user}
+      />
 
       {/* 2FA section */}
       <section className="space-y-4 rounded-lg border border-border bg-background p-6">
@@ -177,5 +145,55 @@ export default function AccountPage() {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Profile form. Là component con riêng để AccountPage có thể key theo `user.id` và remount
+ * khi user load async — vì `useState` chỉ chạy 1 lần, nếu khởi tạo trong cùng component cha
+ * thì field sẽ rỗng trên deep-link/refresh (store chưa rehydrate khi render lần đầu).
+ */
+function ProfileForm({ user }: { user: User | null }) {
+  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? "");
+
+  const profileMutation = useUpdateProfile();
+
+  const handleProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validateDisplayName(displayName);
+    if (err) return toast.error(err);
+    profileMutation.mutate(
+      { displayName: displayName.trim(), avatarUrl: avatarUrl.trim() || null },
+      {
+        onSuccess: () => toast.success("Profile updated"),
+        onError: (error) => toast.error("Update failed", { description: error.message || "Please try again." }),
+      }
+    );
+  };
+
+  return (
+    <section className="space-y-4 rounded-lg border border-border bg-background p-6">
+      <h2 className="text-lg font-bold text-foreground">Profile</h2>
+      <form onSubmit={handleProfile} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="displayName" className="text-sm font-bold text-foreground">Display name</Label>
+          <Input id="displayName" value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="h-11 bg-background border-border text-foreground rounded-[4px]" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="avatarUrl" className="text-sm font-bold text-foreground">Avatar URL</Label>
+          <Input id="avatarUrl" type="url" placeholder="https://example.com/avatar.png" value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            className="h-11 bg-background border-border text-foreground rounded-[4px]" />
+          <p className="text-xs text-muted-foreground">Image URL text — no file upload (đã chốt scope).</p>
+        </div>
+        <Button type="submit" disabled={profileMutation.isPending}
+          className="bg-spotify-green hover:opacity-90 text-black font-bold h-10 rounded-full px-6">
+          {profileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save changes"}
+        </Button>
+      </form>
+    </section>
   );
 }

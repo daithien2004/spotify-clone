@@ -58,18 +58,21 @@ public class AuthController {
     private String cookieDomain;
 
     @org.springframework.web.bind.annotation.GetMapping("/me")
-    public ResponseEntity<GetCurrentUserUseCase.Response> getCurrentUser(HttpServletRequest request) {
+    public ResponseEntity<GetCurrentUserUseCase.UserResponse> getCurrentUser(HttpServletRequest request) {
         String userIdStr = request.getHeader("X-User-Id");
         if (userIdStr == null || userIdStr.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
+
         GetCurrentUserUseCase.Response result = getCurrentUserUseCase.execute(UUID.fromString(userIdStr));
         if (!result.success()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
-        return ResponseEntity.ok(result);
+
+        // Trả payload (UserResponse) chứ không phải Response (success+data) — nếu không
+        // GlobalResponseWrapper bọc thêm envelope nữa → body bị double-wrap {success,data:{success,data:{...}}}
+        // khác với các endpoint khác (login/register) chỉ bọc 1 lớp.
+        return ResponseEntity.ok(result.data());
     }
 
     @PatchMapping("/me")

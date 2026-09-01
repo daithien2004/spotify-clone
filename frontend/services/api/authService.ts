@@ -1,4 +1,4 @@
-import { api } from "@/lib/api-client";
+import { api, unwrap, type ApiResponse } from "@/lib/api-client";
 import {
   AuthResponse,
   Enroll2faResponse,
@@ -26,11 +26,15 @@ export interface ApiResult<T> {
 
 export class AuthService {
   static async login(request: LoginRequest): Promise<AuthResponse> {
-    return api.post<AuthResponse>("/auth/login", request);
+    // api.post trả về envelope {success,data:{payload}} — unwrap để trả payload đúng
+    // theo return type AuthResponse (giống convention track/playlist service).
+    const envelope = await api.post<ApiResponse<AuthResponse>>("/auth/login", request);
+    return unwrap(envelope);
   }
 
   static async register(request: RegisterRequest): Promise<AuthResponse> {
-    return api.post<AuthResponse>("/auth/register", request);
+    const envelope = await api.post<ApiResponse<AuthResponse>>("/auth/register", request);
+    return unwrap(envelope);
   }
 
   static async logout(): Promise<void> {
@@ -62,11 +66,13 @@ export class AuthService {
   }
 
   static async updateProfile(body: UpdateProfileRequest): Promise<ProfileResponse> {
-    return api.patch<ProfileResponse>("/auth/me", body);
+    const envelope = await api.patch<ApiResponse<ProfileResponse>>("/auth/me", body);
+    return unwrap(envelope);
   }
 
   static async enroll2fa(): Promise<Enroll2faResponse> {
-    return api.post<Enroll2faResponse>("/auth/2fa/enroll", {});
+    const envelope = await api.post<ApiResponse<Enroll2faResponse>>("/auth/2fa/enroll", {});
+    return unwrap(envelope);
   }
 
   static async verify2faSetup(code: string): Promise<void> {
@@ -78,6 +84,7 @@ export class AuthService {
   }
 
   static async verify2faLogin(mfaToken: string, code: string): Promise<AuthResponse> {
-    return api.post<AuthResponse>("/auth/2fa/verify-login", { mfaToken, code });
+    const envelope = await api.post<ApiResponse<AuthResponse>>("/auth/2fa/verify-login", { mfaToken, code });
+    return unwrap(envelope);
   }
 }
