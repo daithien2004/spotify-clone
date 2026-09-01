@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "title": "Play It Safe",
+      "artist": "Julia Wolf",
+      "album": "Girls In Purgatory (Full of Grace)",
+      "durationMs": 159000,
+      "artworkUrl": "/figma/happy-hits.png",
+      "audioUrl": "/api/v1/tracks/20000000-0000-4000-8000-000000000001/audio",
+      "createdAt": "2026-03-03T00:00:00Z",
+      "updatedAt": "2026-03-03T00:00:00Z"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "title": "Free Spirit",
+      "artist": "Khalid",
+      "album": "Free Spirit (Explicit)",
+      "durationMs": 182000,
+      "audioUrl": "/api/v1/tracks/20000000-0000-4000-8000-000000000003/audio",
+      "createdAt": "2026-03-03T00:00:00Z",
+      "updatedAt": "2026-03-03T00:00:00Z"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000006",
+      "title": "A Moment Apart",
+      "artist": "ODESZA",
+      "album": "A Moment Apart",
+      "durationMs": 234000,
+      "audioUrl": "/api/v1/tracks/20000000-0000-4000-8000-000000000006/audio",
+      "createdAt": "2026-03-03T00:00:00Z",
+      "updatedAt": "2026-03-03T00:00:00Z"
+    }
+  ],
+  "message": null,
+  "timestamp": "2026-09-01T00:00:00Z"
+}

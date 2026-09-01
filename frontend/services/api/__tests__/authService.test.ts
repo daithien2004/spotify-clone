@@ -34,10 +34,14 @@ describe("AuthService", () => {
     expect(api.post).toHaveBeenCalledWith("/auth/verify-email", { token: "vtok" });
   });
 
-  it("updateProfile patches /auth/me and returns enriched profile", async () => {
+  it("updateProfile patches /auth/me and returns unwrapped profile", async () => {
+    // API trả envelope {success,data:{payload}} — AuthService phải unwrap(data) trước khi trả
     vi.mocked(api.patch).mockResolvedValue({
-      id: "1", email: "a@b.com", displayName: "New", avatarUrl: null,
-      emailVerified: true, twoFactorEnabled: false,
+      success: true,
+      data: {
+        id: "1", email: "a@b.com", displayName: "New", avatarUrl: null,
+        emailVerified: true, twoFactorEnabled: false,
+      },
     });
     const r = await AuthService.updateProfile({ displayName: "New", avatarUrl: null });
     expect(api.patch).toHaveBeenCalledWith("/auth/me", { displayName: "New", avatarUrl: null });
@@ -45,8 +49,11 @@ describe("AuthService", () => {
     expect(r.emailVerified).toBe(true);
   });
 
-  it("enroll2fa POSTs /auth/2fa/enroll and returns QR", async () => {
-    vi.mocked(api.post).mockResolvedValue({ otpauthUrl: "otpauth://...", qrDataUri: "data:image/png;base64,x" });
+  it("enroll2fa POSTs /auth/2fa/enroll and returns unwrapped QR data", async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      success: true,
+      data: { otpauthUrl: "otpauth://...", qrDataUri: "data:image/png;base64,x" },
+    });
     const r = await AuthService.enroll2fa();
     expect(api.post).toHaveBeenCalledWith("/auth/2fa/enroll", {});
     expect(r.qrDataUri).toBe("data:image/png;base64,x");

@@ -1,0 +1,62 @@
+name: E2E (full stack)
+
+# E2E toàn stack: boot infra (docker-compose) + 4 service + gateway + mailpit, rồi chạy
+# Playwright (auth flow + TOTP 2FA) và smoke-auth.sh. Nặng → chỉ chạy thủ công qua
+# GitHub UI (workflow_dispatch) hoặc khi cần kiểm tra trước release — không chạy theo PR.
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright E2E + smoke (toàn stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_PASSWORD: postgres
+      MAIL_HOST: localhost
+      MAIL_PORT: 1025
+      MAIL_STARTTLS_ENABLE: "false"
+      MAIL_STARTTLS_REQUIRED: "false"
+      APP_SECURITY_RATE_LIMIT_PER_MINUTE: "100"
+      APP_BASE_URL: http://localhost:3000
+      KAFKA_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install FE deps
+        run: npm ci --prefix frontend
+
+      - name: Boot full stack (infra + 4 service + gateway + mailpit)
+        run: bash ./scripts/smoke-auth.sh boot
+        shell: bash
+        env:
+          MAIL_USERNAME: smoke@test.local
+          MAIL_PASSWORD: whatever
+
+      - name: Smoke test toàn stack
+        run: bash ./scripts/smoke-auth.sh run
+
+      - name: Playwright E2E (auth + 2FA)
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          E2E_FULL=1 npx playwright test
+
+      - name: Stop services
+        if: always()
+        run: bash ./scripts/smoke-auth.sh stop
+        shell: bash

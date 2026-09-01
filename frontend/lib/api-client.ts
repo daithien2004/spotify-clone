@@ -22,10 +22,18 @@ export function unwrap<T>(envelope: ApiResponse<T>): T {
   return envelope.data;
 }
 
-/** Quy đường dẫn tương đối (vd /api/v1/tracks/x/audio) về absolute qua gateway. */
+/** Quy đường dẫn tương đối về absolute qua gateway.
+ *  `audioUrl` từ backend (VD seed) đã kèm sẵn prefix `/api/v1/tracks/.../audio` —
+ *  nếu gắn thêm `${BASE_URL}` (vốn đã gồm `/api/v1`) sẽ tạo URL kép
+ *  `/api/v1/api/v1/...` → 401/format error (bug phát hiện bởi E2E main flow P4).
+ *  Path đã kèm `/api/v1/` → xem như là API path đầy đủ, chỉ cần gắn origin
+ *  (new URL với path bắt đầu bằng `/` sẽ thay thế path của base). Path relative
+ *  khác vẫn gắn BASE_URL như trước. */
 export function resolveApiUrl(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
-  return `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  if (path.startsWith("/api/v1/")) return new URL(path, BASE_URL).toString();
+  if (path.startsWith("/")) return `${BASE_URL}${path}`;
+  return `${BASE_URL}/${path}`;
 }
 
 export interface ApiError {

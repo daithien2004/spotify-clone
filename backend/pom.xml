@@ -37,10 +37,20 @@
         <totp.version>1.7.1</totp.version>
         <flyway-postgres.version>10.15.0</flyway-postgres.version>
         <minio.version>8.5.12</minio.version>
+        <!-- ===== Testcontainers (integration tests) ===== -->
+        <testcontainers.version>1.19.8</testcontainers.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Testcontainers BOM — quản lý version 1 chỗ cho mọi service. -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>com.spotify</groupId>
                 <artifactId>common-lib</artifactId>
