@@ -10,4 +10,6 @@ public interface PlaylistRepository {
     Optional<Playlist> findById(UUID id);
 
     List<Playlist> findAll();
+
+    Playlist save(Playlist playlist);
 }

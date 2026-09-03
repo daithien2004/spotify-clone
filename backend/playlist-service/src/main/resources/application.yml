@@ -27,6 +27,12 @@ spring:
   jackson:
     default-property-inclusion: NON_NULL
 
+services:
+  user-service:
+    # Cross-service broker for resolving owner display names. Env-overridable so
+    # localhost works for the smoke harness and container-name for docker-compose.
+    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8088}
+
 # ===== OpenAPI / Swagger UI =====
 springdoc:
   api-docs:

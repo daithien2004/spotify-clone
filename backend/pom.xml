@@ -25,6 +25,7 @@
         <module>playlist-service</module>
         <module>track-service</module>
         <module>search-service</module>
+        <module>user-service</module>
     </modules>
 
     <properties>

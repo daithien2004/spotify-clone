@@ -29,4 +29,9 @@ public class PlaylistRepositoryImpl implements PlaylistRepository {
     public List<Playlist> findAll() {
         return jpaRepository.findAll().stream().map(mapper::toDomainEntity).toList();
     }
+
+    @Override
+    public Playlist save(Playlist playlist) {
+        return mapper.toDomainEntity(jpaRepository.save(mapper.toJpaEntity(playlist)));
+    }
 }

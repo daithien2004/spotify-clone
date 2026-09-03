@@ -45,4 +45,15 @@ export class PlaylistService {
     const envelope = await api.get<ApiResponse<PlaylistTrackResponse[]>>(`/playlists/${id}/tracks`);
     return unwrap(envelope);
   }
+
+  static async createPlaylist(input: { title: string; description?: string }): Promise<Playlist> {
+    const envelope = await api.post<ApiResponse<PlaylistResponse>>("/playlists", input);
+    // Chỉ cần id + title cho redirect + sidebar; adapt đầy đủ như getPlaylist.
+    return playlistResponseToPlaylist(unwrap(envelope));
+  }
+
+  /** POST /playlists/{id}/tracks — thêm 1 track vào playlist (backend LexoRank append). */
+  static async addTrack(playlistId: string, trackId: string): Promise<void> {
+    await api.post<ApiResponse<PlaylistTrackResponse>>(`/playlists/${playlistId}/tracks`, { trackId });
+  }
 }

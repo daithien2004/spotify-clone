@@ -82,7 +82,7 @@ public class RegisterUseCase {
                 .build();
 
         user = userRepository.save(user);
-        domainEventPublisher.publish(new UserRegistered(user.getId(), user.getEmail().value()));
+        domainEventPublisher.publish(new UserRegistered(user.getId(), user.getEmail().value(), user.getDisplayName()));
 
         // Auto-send verification email (spec D6) — token EMAIL_VERIFICATION TTL 24h, single-use
         String verificationToken = UUID.randomUUID().toString();

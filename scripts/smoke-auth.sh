@@ -2,8 +2,9 @@
 # smoke-auth.sh — end-to-end smoke test của luồng auth + dữ liệu thật qua gateway 9000.
 #
 #  Subcommands:
-#    boot   — docker-compose up (infra + mailpit), cài common-lib, chạy 4 service + gateway
-#             (background, env trỏ Mailpit), chờ readiness từng cổng.
+#    boot   — docker-compose up (infra + mailpit), cài common-lib, chạy 5 service + gateway
+#             (auth/playlist/track/search/user, background, env trỏ Mailpit), chờ readiness từng cổng.
+#             user-service (8088) cần Kafka lên để consume user.registered từ auth.
 #    run    — thực thi luồng smoke (giả định stack đã up). Trả exit code = số FAIL.
 #    stop   — kill các service đã launch bởi boot (không chạm docker-compose).
 #    all    — boot + run + stop (mặc định).
@@ -98,6 +99,24 @@ wait_port() {
   return 1
 }
 
+wait_tcp() {
+  # wait_tcp <port> [timeout_s] — Kafka không trả HTTP (wait_port dùng curl sẽ timeout),
+  # nên chờ bằng TCP connect. Bắt buộc trước boot services: nếu register (A1) xảy ra trước
+  # khi broker up, auth producer drop event user.registered → user-service không có user → D1 fail.
+  local port=$1 timeout=${2:-120}
+  "$PY" - "$port" "$timeout" <<'PY'
+import socket, sys, time
+port, t = int(sys.argv[1]), int(sys.argv[2])
+for _ in range(t):
+    try:
+        socket.create_connection(("127.0.0.1", port), timeout=2).close()
+        sys.exit(0)
+    except OSError:
+        time.sleep(1)
+sys.exit(1)
+PY
+}
+
 wait_auth_ready() {
   # Auth-service mở TCP trước khi route /auth/** được đăng ký (~vài giây). Nếu smoke
   # chạy ngay khi :8081 mới "up", gateway proxy register → 500 "Connection refused:
@@ -140,6 +159,8 @@ boot_infra() {
   wait_port 8025 "" 60 || { echo "  mailpit không lên."; return 1; }
   echo "  Chờ Elasticsearch (:9200)... (lần đầu kéo image + bootstrap lâu)"
   wait_port 9200 "" 180 || echo "  (elasticsearch chưa kịp lên — search smoke có thể fail)"
+  echo "  Chờ Kafka (:9092 TCP)... (user-service consume user.registered từ auth)"
+  wait_tcp 9092 120 || echo "  (kafka chưa kịp lên — user.registered ban đầu có thể mất)"
 }
 
 find_mvn() {
@@ -229,10 +250,11 @@ PY
   start_service playlist backend -pl playlist-service
   start_service track    backend -pl track-service
   start_service search   backend -pl search-service
+  start_service user     backend -pl user-service
   start_service gateway  gateway
 
-  echo "  Chờ readiness (4 service + gateway, mỗi port tối đa 240s):"
-  for port in 8081 8084 8085 8086 9000; do
+  echo "  Chờ readiness (5 service + gateway, mỗi port tối đa 240s):"
+  for port in 8081 8084 8085 8086 8088 9000; do
     if wait_port "$port"; then
       echo "    OK  :$port up"
     else
@@ -256,7 +278,7 @@ stop_services() {
       taskkill //F //T //PID "$pid" >/dev/null 2>&1 || true
     done <"$PID_FILE"
   fi
-  for port in 8081 8084 8085 8086 9000; do
+  for port in 8081 8084 8085 8086 8088 9000; do
     "$PY" - "$port" <<'PY'
 import subprocess, sys
 port = sys.argv[1]
@@ -331,6 +353,8 @@ run_smoke() {
   step "A2. GET /me ban đầu (emailVerified=false)"
   request GET /auth/me
   [ "$HTTP_STATUS" = "200" ] && ok "/me → 200" || bad "/me → $HTTP_STATUS"
+  # Lưu UID1 cho section D (user-service) — id của người dùng vừa register (A1).
+  UID1=$(json_get "$BODY" data.id)
   # /me trả single envelope {success,data:{id,...}} (đã fix double-wrap) → đọc data.emailVerified
   [ "$(json_get "$BODY" data.emailVerified)" = "false" ] && ok "emailVerified=false" || bad "emailVerified ≠ false (binh: $BODY)"
 
@@ -404,6 +428,12 @@ PY
     [ "$HTTP_STATUS" = "200" ] && ok "login password mới → 200" || bad "login → $HTTP_STATUS ($BODY)"
     [ "$(json_get "$BODY" data.mfaRequired)" = "false" ] && ok "mfaRequired=false (không bật 2FA)" || bad "mfaRequired ≠ false"
     jar_has auth-token && ok "auth-token set sau login" || bad "thiếu auth-token"
+    # Lưu UID2 cho section D (user-service): sau login, cookie = user2 → GET /me lấy id.
+    if jar_has auth-token; then
+      request GET /auth/me
+      UID2=$(json_get "$BODY" data.id)
+      [ -n "$UID2" ] && ok "user2 id: $UID2" || bad "không lấy được UID2"
+    fi
   fi
 
   step "C1. DỮ LIỆU THẬT qua gateway (JWT cookie từ A7): playlists / tracks / search / audio"
@@ -422,6 +452,86 @@ PY
   request GET "/tracks/$T1/audio" "" -H "Range: bytes=0-100"
   [ "$HTTP_STATUS" = "206" ] && ok "GET /tracks/$T1/audio Range → 206" || bad "audio → $HTTP_STATUS"
   grep -qi '^Content-Range:' "$TMP_HDR" && ok "có Content-Range header" || bad "thiếu Content-Range"
+
+  step "D1. USER-SERVICE: profile + follows qua gateway 9000"
+  # user1 register ở A1, user2 ở B1 → auth publish user.registered → user-service consume
+  # (async). Poll GET /users/$UID1 tới 200 để đảm bảo user đã được upsert (tránh flake).
+  d_found=0
+  for i in $(seq 1 60); do
+    request GET "/users/$UID1"
+    [ "$HTTP_STATUS" = "200" ] && { d_found=1; break; }
+    sleep 1
+  done
+  [ "$d_found" = "1" ] && ok "user1 sync vào user-service (GET /users/$UID1 → 200)" \
+    || bad "user1 chưa xuất hiện (event user.registered không được consume?) → $HTTP_STATUS"
+  if [ "$d_found" = "1" ]; then
+    # Profile public không lộ email/PII; có displayName + counters.
+    request GET "/users/$UID1"
+    [ "$(json_get "$BODY" data.displayName)" = "Smoke User" ] && ok "profile trả displayName" \
+      || bad "displayName sai (binh: $BODY)"
+    case "$BODY" in *\"email\"*) bad "profile public lộ field email" ;; *) ok "profile public không lộ email" ;; esac
+    [ "$(json_get "$BODY" data.followersCount)" = "0" ] && ok "followersCount=0 ban đầu" \
+      || bad "followersCount ≠ 0 (binh: $BODY)"
+  fi
+  request GET "/users/$UID1/followers"
+  [ "$HTTP_STATUS" = "200" ] && ok "GET /users/$UID1/followers → 200" || bad "→ $HTTP_STATUS"
+
+  step "D2. SELF-FOLLOW bị chặn (400)"
+  request POST "/users/$UID2/follow" ""
+  [ "$HTTP_STATUS" = "400" ] && ok "self-follow → 400" \
+    || bad "self-follow → $HTTP_STATUS (binh: $BODY)"
+
+  step "D3. FOLLOW thật (user2 follow user1) + verify counts"
+  request POST "/users/$UID1/follow" ""
+  [ "$HTTP_STATUS" = "200" ] && ok "user2 follow user1 → 200" \
+    || bad "follow → $HTTP_STATUS (binh: $BODY)"
+  request GET "/users/$UID1/followers"
+  [ "$(json_get "$BODY" data.0.id)" = "$UID2" ] && ok "user1 có follower = user2" \
+    || bad "follower sai (binh: $BODY)"
+  request GET "/users/$UID2/following"
+  [ "$(json_get "$BODY" data.0.id)" = "$UID1" ] && ok "user2 đang follow user1" \
+    || bad "following sai (binh: $BODY)"
+  request GET "/users/$UID1"
+  [ "$(json_get "$BODY" data.followersCount)" = "1" ] && ok "profile followersCount=1" \
+    || bad "followersCount ≠ 1 (binh: $BODY)"
+
+  step "D4. UNFOLLOW (user2 bỏ follow user1) → rỗng lại"
+  request DELETE "/users/$UID1/follow"
+  [ "$HTTP_STATUS" = "200" ] && ok "unfollow → 200" || bad "unfollow → $HTTP_STATUS (binh: $BODY)"
+  request GET "/users/$UID1/followers"
+  [ "$HTTP_STATUS" = "200" ] && ok "GET /followers sau unfollow → 200" || bad "→ $HTTP_STATUS"
+
+  step "E1. CREATE PLAYLIST (cookie A7 → nhưng D-section đã login user2) → owner resolve cross-service"
+  # LƯU Ý: sau section D (unfollow), cookie jar đang = user2 ("Smoke Two") — chứ không phải
+  # user1 A7. Vì vậy ownerName phải resolve = "Smoke Two" — đây chính là bằng chứng chức năng
+  # resolve cross-service chạy ĐÚNG với principal thật (X-User-Id → user-service). Fallback "You"
+  # chỉ khi user chưa sync. Không hardcode giả định cookie=A7 ở đây.
+  request POST /playlists "{\"title\":\"Smoke Build Mix\",\"description\":\"from section E\"}"
+  [ "$HTTP_STATUS" = "201" ] && ok "POST /playlists → 201" || bad "POST /playlists → $HTTP_STATUS (binh: $BODY)"
+  NEWPL=$(json_get "$BODY" data.id)
+  [ -n "$NEWPL" ] && ok "playlist mới id: $NEWPL" || bad "không lấy được id playlist mới"
+  [ "$(json_get "$BODY" data.ownerName)" = "Smoke Two" ] && ok "ownerName='Smoke Two' (resolve theo principal thật)" \
+    || bad "ownerName ≠ 'Smoke Two' (binh: $BODY)"
+
+  step "E2. LIST /playlists chứa playlist vừa tạo"
+  request GET /playlists
+  [ "$HTTP_STATUS" = "200" ] && ok "GET /playlists → 200" || bad "→ $HTTP_STATUS"
+  case "$BODY" in *"$NEWPL"*) ok "playlist mới $NEWPL có trong list" ;; *) bad "playlist mới không xuất hiện (binh: $BODY)" ;; esac
+
+  step "E3. CREATE PLAYLIST validation: title blank → 400"
+  request POST /playlists "{\"title\":\"   \",\"description\":\"x\"}"
+  [ "$HTTP_STATUS" = "400" ] && ok "blank title → 400" || bad "blank title → $HTTP_STATUS (binh: $BODY)"
+
+  step "E4. ADD TRACK (T1) vào playlist mới → append LexoRank"
+  request POST "/playlists/$NEWPL/tracks" "{\"trackId\":\"$T1\"}"
+  [ "$HTTP_STATUS" = "201" ] && ok "POST /playlists/$NEWPL/tracks → 201" || bad "add track → $HTTP_STATUS (binh: $BODY)"
+  [ "$(json_get "$BODY" data.trackId)" = "$T1" ] && ok "trả về trackId=$T1" || bad "trackId sai (binh: $BODY)"
+  [ -n "$(json_get "$BODY" data.lexoRank)" ] && ok "có lexoRank (append)" || bad "thiếu lexoRank"
+
+  step "E5. GET /playlists/$NEWPL/tracks round-trip chứa T1"
+  request GET "/playlists/$NEWPL/tracks"
+  [ "$HTTP_STATUS" = "200" ] && ok "GET /playlists/$NEWPL/tracks → 200" || bad "→ $HTTP_STATUS"
+  case "$BODY" in *"$T1"*) ok "track T1 có trong playlist (round-trip)" ;; *) bad "track T1 không có trong playlist (binh: $BODY)" ;; esac
 
   step "KẾT QUẢ"
   echo "  PASS=$PASS  FAIL=$FAIL"

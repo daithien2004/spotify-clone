@@ -38,6 +38,14 @@ public class GatewayConfig {
                 .route("search-service", r -> r.path("/api/v1/search/**")
                         .filters(f -> f.filter(authFilter))
                         .uri("http://localhost:8086"))
+                // user-service public reads (profile/followers/following) — no JWT needed
+                .route("user-service-public", r -> r.path("/api/v1/users/*/followers",
+                                "/api/v1/users/*/following", "/api/v1/users/*")
+                        .uri("http://localhost:8088"))
+                // user-service mutations (follow/unfollow) — require JWT → X-User-Id
+                .route("user-service", r -> r.path("/api/v1/users/**")
+                        .filters(f -> f.filter(authFilter))
+                        .uri("http://localhost:8088"))
                 .build();
     }
 }

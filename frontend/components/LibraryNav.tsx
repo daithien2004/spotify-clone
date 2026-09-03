@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
-import { Home, Library, Plus, Heart } from "lucide-react";
+import { Home, Library, Heart, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAYLISTS } from "@/lib/musicData";
 import { queryKeys } from "@/lib/queryKeys";
@@ -12,6 +12,7 @@ import {
   PlaylistService,
   type PlaylistSummaryItem,
 } from "@/services/api/playlistService";
+import { CreatePlaylistDialog } from "@/components/playlist/CreatePlaylistDialog";
 
 /** Sidebar trái (Figma "Spotify Music UI Design (Community)" 124:2941). */
 
@@ -80,18 +81,13 @@ export function LibraryNav() {
       <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-bg-elevated p-2 shadow-2xl">
         <div className="px-3 pb-2 pt-2">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Create playlist or folder"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text-soft transition-colors hover:bg-white/10 hover:text-text-primary"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            <CreatePlaylistDialog withLabel />
             <Link
-              href="/"
-              className="rounded-full px-3 py-2 text-sm font-bold text-text-soft transition-colors hover:bg-white/10 hover:text-text-primary"
+              href="/upload"
+              className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold text-text-soft transition-colors hover:bg-white/10 hover:text-text-primary"
             >
-              Create Playlist
+              <Upload className="h-4 w-4" />
+              Upload
             </Link>
           </div>
           <Link

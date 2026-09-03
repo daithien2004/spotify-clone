@@ -54,6 +54,19 @@ services:
       - track_postgres_data:/var/lib/postgresql/data
     restart: always
 
+  user-db:
+    image: postgres:16-alpine
+    container_name: spotify_postgres_user
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: user_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+    restart: always
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: spotify_elasticsearch
@@ -125,6 +138,7 @@ volumes:
   auth_postgres_data:
   playlist_postgres_data:
   track_postgres_data:
+  user_postgres_data:
   minio_data:
   es_data:
   kafka_data:

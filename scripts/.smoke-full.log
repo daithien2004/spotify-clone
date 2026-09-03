@@ -1,0 +1,138 @@
+
+### Infra: docker-compose up (DBs, minio, elasticsearch, redis, kafka, mailpit)
+ Container spotify_postgres_playlist  Running
+ Container spotify_mailpit  Running
+ Container spotify_postgres_track  Running
+ Container spotify_redis  Running
+ Container kafka  Running
+ Container spotify_postgres_user  Running
+ Container spotify_minio  Running
+ Container spotify_postgres_auth  Running
+ Container spotify_elasticsearch  Running
+ Container kafka-ui  Running
+  Chờ mailpit (:8025)...
+  Chờ Elasticsearch (:9200)... (lần đầu kéo image + bootstrap lâu)
+  Chờ Kafka (:9092 TCP)... (user-service consume user.registered từ auth)
+  Đã kill các service (bởi PID_FILE + theo port).
+  Cài common-lib vào ~/.m2 (service chạy standalone, không reactor)...
+WARNING: A Java agent has been loaded dynamically (C:\Users\THIEN'PC\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.12\byte-buddy-agent-1.14.12.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+  launch auth -> logs/auth.log (pid 8324)
+  launch playlist -> logs/playlist.log (pid 19504)
+  launch track -> logs/track.log (pid 8572)
+  launch search -> logs/search.log (pid 9260)
+  launch user -> logs/user.log (pid 18888)
+  launch gateway -> logs/gateway.log (pid 2484)
+  Chờ readiness (5 service + gateway, mỗi port tối đa 240s):
+    OK  :8081 up
+    OK  :8084 up
+    OK  :8085 up
+    OK  :8086 up
+    OK  :8088 up
+    OK  :9000 up
+    OK  :8081 auth route đã sẵn sàng (403)
+
+### A1. REGISTER người dùng 1 (auto-send verification email)
+  [32mPASS[0m  register → 201
+  [32mPASS[0m  Set-Cookie auth-token
+
+### A2. GET /me ban đầu (emailVerified=false)
+  [32mPASS[0m  /me → 200
+  [32mPASS[0m  emailVerified=false
+
+### A3. VERIFY EMAIL qua link trong mailpit
+  [32mPASS[0m  mailpit có link verify-email (smoke.1788417690.a@example.com)
+  [32mPASS[0m  verify-email → 200
+  [32mPASS[0m  /me sau verify → emailVerified=true
+
+### A4. 2FA enroll → TOTP local → verify setup
+  [32mPASS[0m  2fa/enroll → 200
+  [32mPASS[0m  secret từ otpauthUrl (32 chars)
+  [32mPASS[0m  2fa/verify (TOTP 548716) → 200
+
+### A5. LOGOUT (xóa cookie)
+  [32mPASS[0m  logout → 204
+  [32mPASS[0m  auth-token đã xóa
+
+### A6. LOGIN lúc 2FA đang bật → mfaRequired + mfaToken, KHÔNG set cookie
+  [32mPASS[0m  login → 200
+  [32mPASS[0m  mfaRequired=true
+  [32mPASS[0m  mfaToken trả về
+  [32mPASS[0m  chưa có auth-token (đúng)
+
+### A7. 2FA verify-login → set cookie → /me xác nhận session
+  [32mPASS[0m  2fa/verify-login → 200
+  [32mPASS[0m  đã có auth-token sau verify-login
+  [32mPASS[0m  /me đúng user sau 2FA
+
+### A8. REFRESH (rotate refresh-token)
+  [32mPASS[0m  refresh → 200
+  [32mPASS[0m  /me sau refresh → 200
+
+### B1. NGƯỜI DÙNG 2: forgot-password + reset + login password mới
+  [32mPASS[0m  register user2 → 201
+  [32mPASS[0m  forgot-password → 200
+  [32mPASS[0m  mailpit có link reset-password
+  [32mPASS[0m  reset-password → 200
+  [32mPASS[0m  login password mới → 200
+  [32mPASS[0m  mfaRequired=false (không bật 2FA)
+  [32mPASS[0m  auth-token set sau login
+  [32mPASS[0m  user2 id: b8b20bf6-fd4b-46d9-892f-9a77bf43be04
+
+### C1. DỮ LIỆU THẬT qua gateway (JWT cookie từ A7): playlists / tracks / search / audio
+  [32mPASS[0m  GET /playlists → 200
+  [32mPASS[0m  playlist đầu: 10000000-0000-4000-8000-000000000001
+  [32mPASS[0m  GET /playlists/10000000-0000-4000-8000-000000000001/tracks → 200
+  [32mPASS[0m  GET /tracks?ids= (batch) → 200
+  [32mPASS[0m  GET /search/tracks?q=Free+Spirit → 200
+scripts/smoke-auth.sh: line 83: warning: command substitution: ignored null byte in input
+  [32mPASS[0m  GET /tracks/20000000-0000-4000-8000-000000000001/audio Range → 206
+  [32mPASS[0m  có Content-Range header
+
+### D1. USER-SERVICE: profile + follows qua gateway 9000
+  [32mPASS[0m  user1 sync vào user-service (GET /users/de2a29fe-d431-462a-865e-37492a33b8b1 → 200)
+  [32mPASS[0m  profile trả displayName
+  [32mPASS[0m  profile public không lộ email
+  [32mPASS[0m  followersCount=0 ban đầu
+  [32mPASS[0m  GET /users/de2a29fe-d431-462a-865e-37492a33b8b1/followers → 200
+
+### D2. SELF-FOLLOW bị chặn (400)
+  [32mPASS[0m  self-follow → 400
+
+### D3. FOLLOW thật (user2 follow user1) + verify counts
+  [32mPASS[0m  user2 follow user1 → 200
+  [32mPASS[0m  user1 có follower = user2
+  [32mPASS[0m  user2 đang follow user1
+  [32mPASS[0m  profile followersCount=1
+
+### D4. UNFOLLOW (user2 bỏ follow user1) → rỗng lại
+  [32mPASS[0m  unfollow → 200
+  [32mPASS[0m  GET /followers sau unfollow → 200
+
+### E1. CREATE PLAYLIST (cookie A7 → nhưng D-section đã login user2) → owner resolve cross-service
+  [32mPASS[0m  POST /playlists → 201
+  [32mPASS[0m  playlist mới id: 8fe1815b-3559-473c-b9cb-45733df52bfd
+  [32mPASS[0m  ownerName='Smoke Two' (resolve theo principal thật)
+
+### E2. LIST /playlists chứa playlist vừa tạo
+  [32mPASS[0m  GET /playlists → 200
+  [32mPASS[0m  playlist mới 8fe1815b-3559-473c-b9cb-45733df52bfd có trong list
+
+### E3. CREATE PLAYLIST validation: title blank → 400
+  [32mPASS[0m  blank title → 400
+
+### E4. ADD TRACK (T1) vào playlist mới → append LexoRank
+  [32mPASS[0m  POST /playlists/8fe1815b-3559-473c-b9cb-45733df52bfd/tracks → 201
+  [32mPASS[0m  trả về trackId=20000000-0000-4000-8000-000000000001
+  [32mPASS[0m  có lexoRank (append)
+
+### E5. GET /playlists/8fe1815b-3559-473c-b9cb-45733df52bfd/tracks round-trip chứa T1
+  [32mPASS[0m  GET /playlists/8fe1815b-3559-473c-b9cb-45733df52bfd/tracks → 200
+  [32mPASS[0m  track T1 có trong playlist (round-trip)
+
+### KẾT QUẢ
+  PASS=59  FAIL=0
+  Đã kill các service (bởi PID_FILE + theo port).

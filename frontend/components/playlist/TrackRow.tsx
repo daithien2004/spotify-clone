@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import { Clock } from "lucide-react";
 import {
@@ -10,6 +10,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { AddToPlaylistDialog } from "@/components/playlist/AddToPlaylistDialog";
 import { usePlayerStore } from "@/hooks/usePlayerStore";
 import { toPlayerTrack } from "@/lib/adapters";
 import type { TrackItem } from "@/lib/musicTypes";
@@ -35,6 +36,7 @@ export function TrackRow({
   const setCurrentTrack = usePlayerStore((state) => state.setCurrentTrack);
   const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
   const addToQueue = usePlayerStore((state) => state.addToQueue);
+  const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false);
 
   const playTrack = useCallback(() => {
     if (onPlay) {
@@ -46,7 +48,8 @@ export function TrackRow({
   }, [track, index, onPlay, setCurrentTrack, setIsPlaying]);
 
   return (
-    <ContextMenu>
+    <>
+      <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
           role="row"
@@ -120,13 +123,22 @@ export function TrackRow({
         <ContextMenuItem className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10">
           Saved to your Liked Songs
         </ContextMenuItem>
-        <ContextMenuItem className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10">
+        <ContextMenuItem
+          className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10"
+          onSelect={() => setAddToPlaylistOpen(true)}
+        >
           Add to playlist
         </ContextMenuItem>
         <ContextMenuItem className="cursor-pointer rounded-md px-3 py-2 text-sm text-text-primary focus:bg-white/10">
           Share
         </ContextMenuItem>
       </ContextMenuContent>
-    </ContextMenu>
+      </ContextMenu>
+      <AddToPlaylistDialog
+        track={track}
+        open={addToPlaylistOpen}
+        onOpenChange={setAddToPlaylistOpen}
+      />
+    </>
   );
 }
